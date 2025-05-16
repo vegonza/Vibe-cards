@@ -2,6 +2,8 @@
 
 A web-based multiplayer card game "Culo" built with Flask, pure vibes only! 💯
 
+![Game Screenshot](screenshot.png)
+
 ## 🌟 Overview
 
 Vibe-Cards is an implementation of the popular card game "Culo" that allows up to 12 players to play together in real-time. The game features a role system where players can be assigned different roles (President, Vice-President, Neutral, or Culo) based on their performance.
@@ -50,6 +52,18 @@ This is a fully vibe-coded project ✨, meaning it was created entirely by AI wi
 ## 🙌 Vibe With Us
 
 No code, just vibes. That's how we roll in 2025! Feel free to fork, share, and spread the good vibes. Remember - why code when you can vibe? 😎✌️
+
+## ⚠️ Bug Alert
+
+**IMPORTANT:** This project is currently in early development and is EXTREMELY buggy. Expect frequent crashes, game state inconsistencies, and unexpected behavior. Key known issues:
+
+- Game state may become corrupted during play
+- Players might get stuck in turns
+- Card exchanges sometimes fail
+- Multiple card plays can break the game logic
+- Browser refreshes may disconnect players
+
+Use at your own risk - this is more of a proof of concept than a stable game right now!
 
 ## 🤣 Meta Disclaimer
 
