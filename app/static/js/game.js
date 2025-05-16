@@ -881,9 +881,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Store current selection indices before updating hand
         const currentSelection = [...selectedCards];
 
-        // Clear selection array as we'll rebuild it
-        selectedCards = [];
-
         // Update the cards required indicator
         updateCardsRequiredIndicator(data.required_cards_to_play);
 
