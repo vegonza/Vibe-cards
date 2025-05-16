@@ -2268,3 +2268,56 @@ button:hover,
     border-radius: 5px;
     margin: 10px 0;
 }
+
+/* Exchange notification modal styles */
+.exchange-notification-info {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.exchange-notification-animation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 30px 0;
+}
+
+.exchange-card {
+    font-size: 48px;
+    margin: 0 15px;
+    animation: card-pulse 1.5s infinite ease-in-out;
+}
+
+.card-left {
+    animation-delay: 0s;
+}
+
+.card-right {
+    animation-delay: 0.75s;
+}
+
+.exchange-arrows {
+    font-size: 32px;
+    color: #f1c40f;
+}
+
+.exchange-notification-hint {
+    text-align: center;
+    font-style: italic;
+    color: #bdc3c7;
+    margin-top: 20px;
+}
+
+@keyframes card-pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

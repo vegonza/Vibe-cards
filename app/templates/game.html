@@ -372,6 +372,51 @@
                 padding: 2px 6px;
             }
         }
+        
+        /* Exchange notification modal styles */
+        .exchange-notification-info {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .exchange-notification-animation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .exchange-card {
+            font-size: 48px;
+            margin: 0 15px;
+            animation: card-pulse 1.5s infinite ease-in-out;
+        }
+        
+        .card-left {
+            animation-delay: 0s;
+        }
+        
+        .card-right {
+            animation-delay: 0.75s;
+        }
+        
+        .exchange-arrows {
+            font-size: 32px;
+            color: #f1c40f;
+        }
+        
+        .exchange-notification-hint {
+            text-align: center;
+            font-style: italic;
+            color: #bdc3c7;
+            margin-top: 20px;
+        }
+        
+        @keyframes card-pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -626,6 +671,22 @@
             <div class="role-assignment-buttons">
                 <button class="cancel-roles-btn" id="cancel-kick-btn">Cancel</button>
             </div>
+        </div>
+    </div>
+    
+    <!-- Exchange notification modal -->
+    <div class="role-assignment-modal" id="exchange-notification-modal">
+        <div class="role-assignment-content">
+            <h2>Card Exchange in Progress</h2>
+            <div class="exchange-notification-info">
+                <p id="exchange-notification-message">Players are exchanging cards...</p>
+                <div class="exchange-notification-animation">
+                    <div class="exchange-card card-left">🃏</div>
+                    <div class="exchange-arrows">⟷</div>
+                    <div class="exchange-card card-right">🃏</div>
+                </div>
+            </div>
+            <p class="exchange-notification-hint">Please wait until the exchange is complete.</p>
         </div>
     </div>
     
