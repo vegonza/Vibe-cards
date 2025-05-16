@@ -524,6 +524,43 @@
                 height: calc(100% - 16px);
             }
         }
+        
+        .video-change-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .video-url-input {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border: 1px solid #3498db;
+            border-radius: 5px;
+            padding: 10px;
+            font-size: 1em;
+            width: 100%;
+        }
+        
+        .video-url-input:focus {
+            outline: none;
+            border-color: #f1c40f;
+            box-shadow: 0 0 5px rgba(241, 196, 15, 0.5);
+        }
+        
+        .video-help-text {
+            color: #bdc3c7;
+            font-size: 0.9em;
+            font-style: italic;
+        }
+        
+        .host-btn.change-video {
+            background-color: #e74c3c;
+        }
+        
+        .host-btn.change-video:hover {
+            background-color: #c0392b;
+        }
     </style>
 </head>
 <body>
@@ -724,6 +761,7 @@
             <button class="host-btn reset-game" id="host-reset-game">🔄 Reset Game</button>
             <button class="host-btn assign-roles" id="host-assign-roles">👑 Assign Roles</button>
             <button class="host-btn change-deck" id="host-change-deck">🃏 Change Deck Size</button>
+            <button class="host-btn change-video" id="host-change-video">📺 Change Video</button>
             <button class="host-btn kick-players" id="host-kick-players">👢 Kick Players</button>
         </div>
     </div>
@@ -738,6 +776,22 @@
             <div class="role-assignment-buttons">
                 <button class="cancel-roles-btn" id="cancel-roles-btn">Cancel</button>
                 <button class="save-roles-btn" id="save-roles-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Change Video modal -->
+    <div class="role-assignment-modal" id="video-change-modal">
+        <div class="role-assignment-content">
+            <h2>Change Table Video</h2>
+            <div class="video-change-form">
+                <p>Enter a YouTube video URL or ID:</p>
+                <input type="text" id="video-url-input" placeholder="https://www.youtube.com/watch?v=Y_bYby1O-2I or Y_bYby1O-2I" class="video-url-input">
+                <p class="video-help-text">The video will be muted and looped automatically.</p>
+            </div>
+            <div class="role-assignment-buttons">
+                <button class="cancel-roles-btn" id="cancel-video-btn">Cancel</button>
+                <button class="save-roles-btn" id="save-video-btn">Apply</button>
             </div>
         </div>
     </div>
@@ -795,5 +849,112 @@
     </div>
     
     <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Video change functionality
+            const hostChangeVideoBtn = document.getElementById('host-change-video');
+            const videoChangeModal = document.getElementById('video-change-modal');
+            const videoUrlInput = document.getElementById('video-url-input');
+            const saveVideoBtn = document.getElementById('save-video-btn');
+            const cancelVideoBtn = document.getElementById('cancel-video-btn');
+            const youtubeIframe = document.querySelector('.youtube-container iframe');
+            
+            // Store the current video ID
+            let currentVideoId = extractVideoId(youtubeIframe.src) || 'Y_bYby1O-2I';
+            
+            // Function to extract YouTube video ID from various URL formats
+            function extractVideoId(url) {
+                if (!url) return null;
+                
+                // Handle youtu.be format
+                const shortUrlRegex = /youtu\.be\/([^?&#]+)/;
+                const shortMatch = url.match(shortUrlRegex);
+                if (shortMatch && shortMatch[1]) {
+                    return shortMatch[1];
+                }
+                
+                // Handle youtube.com/watch?v= format
+                const watchRegex = /youtube\.com\/watch\?v=([^?&#]+)/;
+                const watchMatch = url.match(watchRegex);
+                if (watchMatch && watchMatch[1]) {
+                    return watchMatch[1];
+                }
+                
+                // Handle youtube.com/embed/ format
+                const embedRegex = /youtube\.com\/embed\/([^?&#]+)/;
+                const embedMatch = url.match(embedRegex);
+                if (embedMatch && embedMatch[1]) {
+                    return embedMatch[1];
+                }
+                
+                // If it's just the ID itself (no URL)
+                if (/^[A-Za-z0-9_-]{11}$/.test(url)) {
+                    return url;
+                }
+                
+                return null;
+            }
+            
+            // Function to update the YouTube iframe with a new video ID
+            function updateYoutubeVideo(videoId) {
+                if (!videoId) return false;
+                
+                const newSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+                youtubeIframe.src = newSrc;
+                currentVideoId = videoId;
+                return true;
+            }
+            
+            // Show video change modal
+            if (hostChangeVideoBtn) {
+                hostChangeVideoBtn.addEventListener('click', function() {
+                    videoUrlInput.value = currentVideoId;
+                    videoChangeModal.style.display = 'flex';
+                });
+            }
+            
+            // Save new video
+            if (saveVideoBtn) {
+                saveVideoBtn.addEventListener('click', function() {
+                    const inputValue = videoUrlInput.value.trim();
+                    const videoId = extractVideoId(inputValue);
+                    
+                    if (videoId) {
+                        if (updateYoutubeVideo(videoId)) {
+                            videoChangeModal.style.display = 'none';
+                            // Save to localStorage for persistence
+                            localStorage.setItem('tableVideoId', videoId);
+                        } else {
+                            alert('Could not update the video. Please try a different URL or ID.');
+                        }
+                    } else {
+                        alert('Invalid YouTube URL or video ID. Please enter a valid YouTube URL or video ID.');
+                    }
+                });
+            }
+            
+            // Cancel video change
+            if (cancelVideoBtn) {
+                cancelVideoBtn.addEventListener('click', function() {
+                    videoChangeModal.style.display = 'none';
+                });
+            }
+            
+            // Close modal when clicking outside
+            if (videoChangeModal) {
+                videoChangeModal.addEventListener('click', function(event) {
+                    if (event.target === videoChangeModal) {
+                        videoChangeModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Load saved video from localStorage if available
+            const savedVideoId = localStorage.getItem('tableVideoId');
+            if (savedVideoId) {
+                updateYoutubeVideo(savedVideoId);
+            }
+        });
+    </script>
 </body>
 </html> 
