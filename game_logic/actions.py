@@ -314,9 +314,16 @@ def play_card_logic(game_state, player_id, card_indices, joker_value, save_game_
     if skip_triggered_by_match:
         skipped_player = util_get_player_by_position(game_state, game_state['current_player_index'])
         if skipped_player:
+            # Instead of marking the player as skipped, we'll just add a message and advance to the next player
+            # This way they're only skipped for this round but not marked as "skipped" in their player data
             util_add_system_message(
                 game_state, f"⏭️ {skipped_player['name']} is skipped due to matching card values!", "warning")
+            # Store the skipped player's position in the game state to trigger animation in the frontend
+            game_state['last_skipped_position'] = game_state['current_player_index']
+            # Update the last action message to ensure it's detected by the frontend
+            game_state['last_action'] = f"{current_action_message} {skipped_player['name']} is skipped due to matching card values!"
         advance_to_next_player(game_state, save_game_state_func)
+        save_game_state_func()  # Save game state after skipping to ensure last_skipped_position is persisted
 
     save_game_state_func()
     return {'success': True, 'refresh': True, 'required_cards_to_play': game_state['required_cards_to_play']}
@@ -332,6 +339,9 @@ def skip_turn_logic(game_state, player_id, save_game_state_func):
     player_data['skipped'] = True
     game_state['last_action'] = f"{player_data['name']} skipped their turn"
     util_add_system_message(game_state, f"⏩ {player_data['name']} skipped their turn", "warning")
+
+    # Store the current player position to trigger skip animation
+    game_state['last_skipped_position'] = player_data['position']
 
     all_active_skipped = all(p['skipped'] or p['rank']
                              is not None for p in game_state['players'].values() if p['rank'] is None)

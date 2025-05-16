@@ -218,6 +218,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 messageElement.textContent = msg.text;
                 return messageElement; // Return early for divider
             }
+
+            // Create a more compact system message
+            const iconMap = {
+                'info': 'ℹ️',
+                'success': '✅',
+                'warning': '⚠️',
+                'error': '❌',
+            };
+
+            const icon = iconMap[msg.type] || '🔄';
+
+            // For system messages, use a more compact format
+            const textElement = document.createElement('span');
+            textElement.classList.add('text');
+            textElement.innerHTML = `${icon} ${msg.text}`;
+
+            const timestampElement = document.createElement('span');
+            timestampElement.classList.add('timestamp');
+            timestampElement.textContent = `(${msg.timestamp})`;
+
+            messageElement.appendChild(textElement);
+            messageElement.appendChild(timestampElement);
+
+            return messageElement;
         }
 
         const senderElement = document.createElement('span');
@@ -735,6 +759,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // Check for last_skipped_position (from matching cards or timeout)
+        if (data.last_skipped_position !== undefined) {
+            console.log("Found last_skipped_position:", data.last_skipped_position);
+
+            // Check if this was a timeout skip based on the last action message
+            const isTimeout = data.last_action && data.last_action.toLowerCase().includes('timeout');
+
+            setTimeout(() => {
+                showSkipAnimation(data.last_skipped_position, isTimeout);
+            }, 300);
+        }
+
         // Store current deck size if provided
         if (data.deck_size !== undefined) {
             currentDeckSize = data.deck_size;
@@ -864,6 +900,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Display chat messages
         displayChatMessages(data.chat_messages);
+
+        // Make sure the clear system messages button is available
+        addClearSystemMessagesButton();
 
         // Update button states
         if (skipTurnButton) {
@@ -1073,6 +1112,14 @@ document.addEventListener('DOMContentLoaded', () => {
             timerText.className = 'turn-timer-text';
         }
 
+        // Check if sand clock already exists, if not create it
+        let sandClock = playerElement.querySelector('.sand-clock');
+        if (!sandClock) {
+            sandClock = document.createElement('div');
+            sandClock.className = 'sand-clock';
+            playerElement.appendChild(sandClock);
+        }
+
         // If we have timer data, update the bar
         if (currentTurnTimeLeft !== null && turnTimerDuration > 0) {
             const percentage = (currentTurnTimeLeft / turnTimerDuration) * 100;
@@ -1094,12 +1141,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Add warning/danger classes based on time left
             if (percentage <= 30) {
                 timerBar.classList.add('danger', 'blinking');
+                // Show sand clock when timer is in danger zone
+                sandClock.classList.add('visible');
             } else if (percentage <= 60) {
                 timerBar.classList.add('warning');
+                // Hide sand clock when not in danger zone
+                sandClock.classList.remove('visible');
+            } else {
+                // Hide sand clock when timer is good
+                sandClock.classList.remove('visible');
             }
         } else {
-            // If no timer data, hide the container
+            // If no timer data, hide the container and sand clock
             timerContainer.style.display = 'none';
+            sandClock.classList.remove('visible');
         }
     }
 
@@ -1303,6 +1358,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         messages.forEach(msg => {
             const messageElement = createChatMessageElement(msg);
+
+            // Make system messages collapsible
+            if (msg.sender === 'System' && msg.type !== 'divider') {
+                messageElement.classList.add('collapsed');
+
+                // Add click event to toggle collapsed state
+                messageElement.addEventListener('click', function () {
+                    this.classList.toggle('collapsed');
+                });
+
+                // If system messages are currently hidden, hide this message too
+                if (systemMessagesHidden) {
+                    messageElement.style.display = 'none';
+                }
+            }
+
             chatLog.appendChild(messageElement);
         });
 
@@ -2288,8 +2359,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchGameState();
 
     // Function to show skip animation on a player
-    function showSkipAnimation(playerPosition) {
-        console.log("Showing skip animation for position:", playerPosition);
+    function showSkipAnimation(playerPosition, isTimeout = false) {
+        console.log("Showing skip animation for position:", playerPosition, isTimeout ? "(timeout)" : "");
         const playerElement = document.querySelector(`.player-position.position-${playerPosition}`);
         if (playerElement) {
             // Remove any existing animation first
@@ -2301,10 +2372,20 @@ document.addEventListener('DOMContentLoaded', () => {
             // Create and add skip animation element
             const skipAnimation = document.createElement('div');
             skipAnimation.className = 'skip-animation';
+
+            // If it's a timeout, add sand clock icon instead of prohibition sign
+            if (isTimeout) {
+                skipAnimation.textContent = "⏳";
+                skipAnimation.style.backgroundColor = "rgba(243, 156, 18, 0.95)"; // Orange for timeout
+                skipAnimation.style.borderColor = "#f39c12";
+            } else {
+                skipAnimation.textContent = "⛔"; // Prohibition sign for regular skip
+            }
+
             playerElement.appendChild(skipAnimation);
 
-            // Add skipped class to the player element
-            playerElement.classList.add('skipped');
+            // We don't add the skipped class to the player element
+            // as we want the animation but not the persistent skipped state
 
             // Add flash effect to the table
             const tableCircle = document.querySelector('.table-circle');
@@ -2327,11 +2408,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (skipAnimation.parentNode === playerElement) {
                     skipAnimation.remove();
                 }
-            }, 1500); // Match the animation duration
+            }, 1500);
 
             console.log("Skip animation added to player element:", playerElement);
         } else {
             console.error("Player element not found for position:", playerPosition);
         }
     }
+
+    // Add a global variable to track system messages visibility state
+    // Default to hidden (true) unless explicitly set to visible in localStorage
+    let systemMessagesHidden = localStorage.getItem('systemMessagesHidden') !== 'false';
+
+    // Initialize localStorage if it doesn't have a value yet
+    if (localStorage.getItem('systemMessagesHidden') === null) {
+        localStorage.setItem('systemMessagesHidden', 'true');
+    }
+
+    // Add a clear system messages button
+    function addClearSystemMessagesButton() {
+        // Check if button already exists
+        if (document.getElementById('clear-system-messages')) {
+            return;
+        }
+
+        // Create the button
+        const clearButton = document.createElement('button');
+        clearButton.id = 'clear-system-messages';
+        clearButton.className = 'clear-system-btn';
+        clearButton.innerHTML = systemMessagesHidden ? '🔊 Show System Messages' : '🔇 Hide System Messages';
+        clearButton.title = systemMessagesHidden ? 'Show all system messages' : 'Hide all system messages';
+
+        // Add active class if messages are hidden
+        if (systemMessagesHidden) {
+            clearButton.classList.add('active');
+        }
+
+        // Add click event
+        clearButton.addEventListener('click', function () {
+            const systemMessages = chatLog.querySelectorAll('.chat-message.system');
+            systemMessagesHidden = !systemMessagesHidden;
+
+            // Store preference in localStorage
+            localStorage.setItem('systemMessagesHidden', systemMessagesHidden);
+
+            if (systemMessagesHidden) {
+                // Hide all system messages
+                systemMessages.forEach(msg => {
+                    msg.style.display = 'none';
+                });
+                this.classList.add('active');
+                this.innerHTML = '🔊 Show System Messages';
+                this.title = 'Show all system messages';
+            } else {
+                // Show all system messages
+                systemMessages.forEach(msg => {
+                    msg.style.display = '';
+                });
+                this.classList.remove('active');
+                this.innerHTML = '🔇 Hide System Messages';
+                this.title = 'Hide all system messages';
+            }
+        });
+
+        // Add the button to the chat container, right after the header
+        const chatHeader = document.querySelector('#chat-container h3');
+        if (chatHeader) {
+            chatHeader.parentNode.insertBefore(clearButton, chatHeader.nextSibling);
+        }
+    }
+
+    // Call this function when the DOM is loaded
+    addClearSystemMessagesButton();
 }); 

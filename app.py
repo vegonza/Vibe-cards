@@ -25,7 +25,8 @@ from game_logic.actions import (
     play_card_logic,
     skip_turn_logic,
     reset_game_logic,
-    exchange_card_logic
+    exchange_card_logic,
+    advance_to_next_player
 )
 
 app = Flask(__name__, static_folder='app/static', template_folder='app/templates')
@@ -262,8 +263,17 @@ def get_game_state_route():
                 if pd_loop['position'] == game_state['current_player_index']:
                     cp_id_for_skip = pid_loop
                     break
+
             if cp_id_for_skip and not game_state['players'][cp_id_for_skip]['skipped'] and game_state['players'][cp_id_for_skip]['rank'] is None:
-                skip_turn_logic(game_state, cp_id_for_skip, save_game_state)
+                # Store the current player position for the skip animation
+                game_state['last_skipped_position'] = game_state['current_player_index']
+                # Add a timeout message instead of skipping
+                util_add_system_message(
+                    game_state, f"⏳ {game_state['players'][cp_id_for_skip]['name']} was skipped due to timeout!", "warning")
+                game_state['last_action'] = f"{game_state['players'][cp_id_for_skip]['name']} was skipped due to timeout"
+                # Advance to next player without marking as skipped
+                advance_to_next_player(game_state, save_game_state)
+                save_game_state()  # Make sure to save the game state after the timeout
                 player_data_initial = game_state['players'][player_id]
 
     player_data = game_state['players'][player_id]
@@ -325,7 +335,8 @@ def get_game_state_route():
         'game_over': game_state.get('game_over', False), 'winner': game_state.get('winner'),
         'required_cards_to_play': game_state.get('required_cards_to_play', 1),
         'rankings': rankings_display_info, 'deck_size': game_state.get('deck_size', 1),
-        'card_exchange': card_exchange_display_info, 'turn_timer': turn_timer_info
+        'card_exchange': card_exchange_display_info, 'turn_timer': turn_timer_info,
+        'last_skipped_position': game_state.pop('last_skipped_position', None)
     })
 
 

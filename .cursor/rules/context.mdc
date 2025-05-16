@@ -9,18 +9,21 @@ This project is about building a web-based multiplayer card game called "Culo" u
 
 **Core Functionality:**
 
-*   **Backend:** Implemented in [app.py](mdc:app.py), it manages game state, player turns, card dealing, and game logic. It uses Flask sessions for player identification and a global `game_state` dictionary.
+*   **Backend Core (`[app.py](mdc:app.py)`):** This is the main Flask application file `[app.py](mdc:app.py)`. It initializes and manages the global `game_state` dictionary (persisted in `[game_state.pickle](mdc:game_state.pickle)`), handles Flask routing for all HTTP requests, manages user sessions, and orchestrates calls to the game logic modules. It serves as the primary entry point for client interactions.
+*   **Game Logic Modules (`game_logic/` directory):**
+    *   **`[game_logic/actions.py](mdc:game_logic/actions.py)`**: Contains the core game action functions such as `play_card_logic`, `skip_turn_logic`, `action_start_game`, `reset_game_logic`, and `exchange_card_logic`. These functions are responsible for mutating the `game_state` based on player inputs or game events. They receive the `game_state` dictionary and a `save_game_state` function as parameters from `[app.py](mdc:app.py)` and utilize helper functions from `[game_logic/utils.py](mdc:game_logic/utils.py)`.
+    *   **`[game_logic/utils.py](mdc:game_logic/utils.py)`**: Provides stateless utility functions (e.g., `util_create_deck`, `util_sort_cards`, `util_add_system_message`, `util_get_players_data`) and constants (e.g., `SUITS`, `VALUES`, `CARD_VALUES`). These functions operate on the `game_state` passed to them as a parameter and typically return computed values or data without directly mutating the state (mutations are handled by functions in `[game_logic/actions.py](mdc:game_logic/actions.py)` or wrapper functions in `[app.py](mdc:app.py)` that call these utils).
 *   **Frontend:**
-    *   Templates are stored in the `templates/` directory, including [game.html](mdc:templates/game.html) for the main game interface, [join.html](mdc:templates/join.html) for player name input, and [spectator.html](mdc:templates/spectator.html) for users who join a full game.
-    *   Styling is handled by [app/static/css/style.css](mdc:app/static/css/style.css).
-    *   Client-side logic is in [app/static/js/game.js](mdc:app/static/js/game.js), which communicates with the backend via fetch requests (e.g., to `/get_game_state`, `/play_card`, `/skip_turn`).
+    *   Templates are stored in the `templates/` directory, including `[templates/game.html](mdc:templates/game.html)` for the main game interface, `[templates/join.html](mdc:templates/join.html)` for player name input, and `[templates/spectator.html](mdc:templates/spectator.html)` for users who join a full game.
+    *   Styling is handled by `[app/static/css/style.css](mdc:app/static/css/style.css)`.
+    *   Client-side logic is in `[app/static/js/game.js](mdc:app/static/js/game.js)`, which communicates with the backend via fetch requests (e.g., to `/get_game_state`, `/play_card`, `/skip_turn`).
 *   **Multiplayer:**
-    *   Supports up to 4 players.
+    *   Supports up to 4 players. (Note: `join_game` in `[app.py](mdc:app.py)` currently allows up to 12, this might need reconciliation with documentation).
     *   Players join by entering their name.
     *   Game starts automatically when 2 or more players join.
     *   Real-time updates are achieved by the client polling the `/get_game_state` endpoint.
 *   **Card Management:**
-    *   The entire deck is distributed among players.
+    *   The entire deck (or a fraction/multiple of it, configurable by the host) is distributed among players.
     *   Cards are represented as CSS-styled elements, not images.
 *   **Game Rules Implemented ("Culo"):**
     1.  **Basic Play:** Players must play a card of equal or higher value than the top card on the table, or skip their turn. If all players skip, the table is cleared.
@@ -33,6 +36,12 @@ This project is about building a web-based multiplayer card game called "Culo" u
         *   **Single Card Play (Ongoing Round):** If the current round requires only one card to be played (and the table is not empty), clicking a playable card in the hand will immediately play it.
         *   **Multi-Card Play (Ongoing Round):** If the current round requires multiple cards (e.g., two cards after someone started with a pair), players must select the exact number of required cards (all of the same value) and click "Play Selected".
         *   **Joker Value Selection:** When playing *only* one or more jokers (2s), a modal appears allowing the player to choose which card value they want the jokers to represent. The jokers are then played with the properties of the selected value but are visually marked. If a joker is played with non-joker cards, its value is automatically assigned to match the non-joker cards.
-    7.  **Return to Last Card Player:** If a round returns to the player who placed the last card (i.e., all other players skipped or were skipped, and no new card was played), the table is cleared and that player starts the new round—they do **not** get to play a card on top of their own card. This rule is already implemented in [app.py](mdc:app.py).
-    8.  **Player Roles System:** The game implements a role system where players can be assigned different roles (President, Vice-President, Neutral, or Culo) by the host. These roles are visually indicated in the UI and can be used to track player status across multiple rounds in tournament play. The host can assign roles manually through the host controls panel, which is accessible only to the first player who joined the game.
-    9.  **Game Completion:** The game continues until all players have finished their hands and received their rankings. Players who finish their hands early are automatically removed from the turn rotation but can still watch the game progress. The first player to finish gets the Gold rank, the second gets Silver, the third gets Bronze, and the last player to finish (with no cards left to play) gets the Loser rank (Culo). Once all players have finished, roles are automatically assigned based on rankings: Gold becomes President, Silver becomes Vice-President, Bronze becomes Vice-Culo, and Loser becomes Culo. 
+    7.  **Return to Last Card Player:** If a round returns to the player who placed the last card (i.e., all other players skipped or were skipped, and no new card was played), the table is cleared and that player starts the new round—they do **not** get to play a card on top of their own card. This rule is implemented in the backend logic (primarily within `[game_logic/actions.py](mdc:game_logic/actions.py)`).
+    8.  **Player Roles System:** The game implements a role system where players can be assigned different roles (President, Vice-President, Neutral, Vice-Culo, or Culo) by the host. These roles are visually indicated in the UI and can be used to track player status across multiple rounds in tournament play. The host can assign roles manually through the host controls panel, which is accessible only to the first player who joined the game (logic in `[app.py](mdc:app.py)`). Roles can also be assigned automatically based on rank at the end of a game (logic in `[game_logic/utils.py](mdc:game_logic/utils.py)` and orchestrated by `[app.py](mdc:app.py)`).
+    9.  **Game Completion & Ranking:** The game continues until all but one player have finished their hands or a configurable condition is met. Players who finish their hands early are removed from the turn rotation but can still watch. Rankings (Gold, Silver, Bronze, Culo/Loser) are assigned based on the order of finishing. This is managed in `[app.py](mdc:app.py)` and `[game_logic/actions.py](mdc:game_logic/actions.py)`.
+    10. **Card Exchange:** At the start of a new round (after roles are assigned based on the previous round's ranks), a card exchange phase occurs:
+        *   President gives their worst N cards to Culo.
+        *   Culo gives their best N cards to President.
+        *   Vice-President gives their worst M cards to Vice-Culo.
+        *   Vice-Culo gives their best M cards to Vice-President.
+        (The number of cards N and M can be configured, typically N=2, M=1). This is managed in `[game_logic/actions.py](mdc:game_logic/actions.py)` via `exchange_card_logic` and related state in `game_state['card_exchange']`.
