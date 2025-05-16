@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Card Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .join-container {
+            max-width: 500px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: #34495e;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .join-form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .form-group input {
+            padding: 12px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            background-color: #2c3e50;
+            color: #ecf0f1;
+        }
+        
+        .join-button {
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        
+        .join-button:hover {
+            background-color: #27ae60;
+        }
+        
+        .game-title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #f1c40f;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .error-message {
+            background-color: rgba(231, 76, 60, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            color: white;
+        }
+        
+        .remember-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .remember-name input {
+            width: 18px;
+            height: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="join-container">
+        <h1 class="game-title">Card Game</h1>
+        
+        {% if error %}
+        <div class="error-message">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <form class="join-form" method="post" action="{{ url_for('join_game') }}">
+            <div class="form-group">
+                <label for="player_name">Enter Your Name:</label>
+                <input type="text" id="player_name" name="player_name" placeholder="Your name" required maxlength="20" autofocus>
+                <div class="remember-name">
+                    <input type="checkbox" id="remember_name" checked>
+                    <label for="remember_name">Remember my name</label>
+                </div>
+            </div>
+            
+            <button type="submit" class="join-button">Join Game</button>
+        </form>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const playerNameInput = document.getElementById('player_name');
+            const rememberCheckbox = document.getElementById('remember_name');
+            const joinForm = document.querySelector('.join-form');
+            
+            // Load saved name from localStorage if available
+            const savedName = localStorage.getItem('culoPlayerName');
+            if (savedName) {
+                playerNameInput.value = savedName;
+                // Automatically submit the form if a name is saved
+                setTimeout(() => {
+                    joinForm.submit();
+                }, 200); // slight delay to ensure DOM is ready
+            }
+            
+            // Save name to localStorage on form submit if checkbox is checked
+            joinForm.addEventListener('submit', function() {
+                if (rememberCheckbox.checked) {
+                    localStorage.setItem('culoPlayerName', playerNameInput.value);
+                } else {
+                    localStorage.removeItem('culoPlayerName');
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

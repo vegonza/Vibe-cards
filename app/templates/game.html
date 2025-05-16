@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Card Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Basic layout for chat and game area */
+        body, html {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; /* Prevent body scrollbars */
+        }
+        .game-layout {
+            display: flex;
+            height: 100vh; /* Make layout take full viewport height */
+            width: 100vw;
+        }
+
+        #chat-container {
+            width: 25%; 
+            min-width: 250px; 
+            max-width: 350px; /* Slightly reduced max-width */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #2c3e50; 
+            padding: 10px;
+            border-right: 2px solid #1a252f;
+            box-sizing: border-box; /* Include padding in width/height */
+        }
+        
+        #chat-container h3 {
+            color: #f1c40f;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+        }
+
+        #chat-log {
+            flex-grow: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 8px;
+            background-color: #34495e;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .chat-message {
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            background-color: #2c3e50; 
+            line-height: 1.4;
+        }
+
+        .chat-message .sender {
+            font-weight: bold;
+            color: #f1c40f; 
+            margin-right: 5px;
+        }
+
+        .chat-message .timestamp {
+            font-size: 0.8em;
+            color: #bdc3c7; 
+            margin-left: 8px;
+        }
+        
+        .chat-message .text {
+            color: #ecf0f1; 
+            word-wrap: break-word; /* Wrap long messages */
+        }
+
+        #chat-input-area {
+            display: flex;
+            gap: 8px;
+        }
+
+        #chat-message-input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #4a6178;
+            background-color: #4a6178;
+            color: #ecf0f1;
+            font-size: 0.9em;
+        }
+
+        #send-message-button {
+            padding: 10px 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        #send-message-button:hover {
+            background-color: #2980b9;
+        }
+
+        .game-content-area {
+            flex-grow: 1; 
+            height: 100%;
+            display: flex; /* Use flex to make fullscreen-container take available space */
+            flex-direction: column;
+            overflow: hidden; 
+            padding: 5px; /* Add some padding around the game area */
+            box-sizing: border-box;
+        }
+        
+        .fullscreen-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* Fill parent game-content-area */
+            width: 100%;
+            overflow: hidden; 
+            position: relative; /* Ensure this is a positioning context for absolute elements */
+        }
+
+        /* Ensure player-avatar and other elements from style.css are still seen */
+        .player-avatar {
+            text-transform: uppercase;
+        }
+        
+        .last-action {
+            display: none; /* Hide the last action notifications on the table */
+        }
+        
+        /* Game controls area */
+        .game-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .rules-button, .settings-button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            padding: 0; /* Remove padding to ensure perfect circles */
+            line-height: 1; /* Ensure text is centered properly */
+        }
+        
+        .rules-button:hover, .settings-button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        .rules-modal, .settings-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .rules-content, .settings-content {
+            background-color: #34495e;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 80%;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            position: relative; /* For positioning the close button */
+        }
+        
+        .rules-content h2, .settings-content h2 {
+            color: #f1c40f;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #2c3e50;
+        }
+        
+        .rules-content ul {
+            margin-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .rules-content li {
+            margin-bottom: 10px;
+        }
+        
+        .special-card {
+            font-weight: bold;
+            color: #e74c3c;
+        }
+        
+        .close-rules, .close-settings {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            float: right;
+            transition: background-color 0.2s ease;
+        }
+        
+        .close-rules:hover, .close-settings:hover {
+            background-color: #c0392b;
+        }
+        
+        .player-info-small {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 5px;
+            z-index: 100;
+            font-size: 0.9em;
+        }
+        
+        .player-name-small {
+            color: #f1c40f;
+            font-weight: bold;
+        }
+        
+        .turn-indicator-small {
+            background-color: rgba(52, 73, 94, 0.7);
+            color: #ffffff;
+            padding: 2px 5px;
+            border-radius: 3px;
+            margin-top: 3px;
+        }
+        
+        .turn-indicator-small.active {
+            background-color: rgba(46, 204, 113, 0.8);
+        }
+        
+        .settings-option {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+        
+        .settings-option p {
+            margin-top: 8px;
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+        
+        #clear-player-name {
+            background-color: #e67e22;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            width: 100%;
+            margin-top: 5px;
+            transition: background-color 0.2s ease;
+        }
+        
+        #clear-player-name:hover {
+            background-color: #d35400;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .rules-content, .settings-content {
+                width: 95%;
+                padding: 15px;
+            }
+            
+            .game-controls {
+                top: 5px;
+                right: 5px;
+                gap: 5px;
+            }
+            
+            .rules-button, .settings-button {
+                width: 30px;
+                height: 30px;
+                font-size: 16px;
+            }
+        }
+        
+        /* Rankings display styles */
+        .game-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .rankings-display {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        
+        .ranking-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            background-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .ranking-icon {
+            font-size: 1.2em;
+        }
+        
+        .ranking-name {
+            font-weight: bold;
+        }
+        
+        .ranking-gold {
+            background-color: rgba(241, 196, 15, 0.2);
+            border: 1px solid #f1c40f;
+        }
+        
+        .ranking-silver {
+            background-color: rgba(189, 195, 199, 0.2);
+            border: 1px solid #bdc3c7;
+        }
+        
+        .ranking-bronze {
+            background-color: rgba(211, 84, 0, 0.2);
+            border: 1px solid #d35400;
+        }
+        
+        .ranking-loser {
+            background-color: rgba(127, 140, 141, 0.2);
+            border: 1px solid #7f8c8d;
+        }
+        
+        @media (max-width: 600px) {
+            .game-status {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .rankings-display {
+                justify-content: center;
+            }
+            
+            .ranking-item {
+                font-size: 0.8em;
+                padding: 2px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-layout">
+        <div id="chat-container">
+            <h3>Chat</h3>
+            <div id="chat-log">
+                <!-- Chat messages will be dynamically added here -->
+            </div>
+            <div id="chat-input-area">
+                <input type="text" id="chat-message-input" placeholder="Type your message...">
+                <button id="send-message-button">Send</button>
+            </div>
+        </div>
+        <div class="game-content-area">
+            <div class="fullscreen-container">
+                <!-- Game controls grouped together -->
+                <div class="game-controls">
+                    <button class="settings-button" id="settings-button" title="Settings">⚙</button>
+                    <button class="rules-button" id="rules-button" title="Game Rules">?</button>
+                </div>
+                
+                <!-- Game status indicator -->
+                <div class="game-status">
+                    <div class="status-badge" id="cards-required-indicator">
+                        {% if required_cards_to_play > 1 %}
+                        <span class="status-label">Playing {{ required_cards_to_play }} cards</span>
+                        {% else %}
+                        <span class="status-label">Playing singles</span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Rankings display -->
+                    <div class="rankings-display" id="rankings-display">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Circular table area - maximized -->
+                <div class="table-section">
+                    <div class="table-circle">
+                        <div class="table-cards">
+                            {% for card in table %}
+                            <div class="card table-card" data-suit="{{ card.suit }}" data-value="{{ card.value }}">
+                                <div class="card-inner">
+                                    <div class="card-front">
+                                        <div class="card-suit corner top-left {{ card.suit }}"></div>
+                                        <div class="card-value center">
+                                            {% if card.value == '2' and card.joker_value %}
+                                                {% if card.joker_value in ['jack','queen','king','ace'] %}
+                                                    {{ card.joker_value[0]|upper }}
+                                                {% else %}
+                                                    {{ card.joker_value }}
+                                                {% endif %}
+                                                <span class="joker-indicator">*</span>
+                                            {% elif card.value in ['jack','queen','king','ace'] %}
+                                                {{ card.value[0]|upper }}
+                                            {% else %}
+                                                {{ card.value }}
+                                            {% endif %}
+                                        </div>
+                                        <div class="card-suit corner bottom-right {{ card.suit }}"></div>
+                                    </div>
+                                    <div class="card-back">
+                                        <div class="card-back-design"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <!-- Player positions around the table -->
+                        <div class="player-positions {% if players|length > 4 %}many-players{% endif %} {% if players|length > 8 %}lots-of-players{% endif %}">
+                            {% for player in players %}
+                            <div class="player-position position-{{ player.position }}" data-player-id="{{ player.id }}">
+                                <div class="player-avatar {% if player.is_current %}current-turn{% endif %} {% if player.rank %}rank-{{ player.rank }}{% endif %} {% if player.is_host %}is-host{% endif %}">
+                                    {{ player.name[0] }}
+                                </div>
+                                <div class="player-name-tag {% if player.rank %}rank-{{ player.rank }}{% endif %} {% if player.is_host %}is-host{% endif %}">{{ player.name }}</div>
+                                <div class="card-count">
+                                    <span class="card-count-number">{{ player.hand_count }}</span> cards
+                                </div>
+                                <div class="turn-timer-container" {% if not player.is_current %}style="display: none;"{% endif %}>
+                                    <div class="turn-timer-bar"></div>
+                                    <div class="turn-timer-text">20s</div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Player's hand and controls side-by-side -->
+                <div class="game-footer">
+                    <div class="hand-controls-container">
+                        <div class="hand-section">
+                            <div class="two-row-hand" id="player-hand">
+                                {% for card in player_hand %}
+                                <div class="card {% if not is_my_turn or loop.index0 not in playable_cards %}disabled{% endif %}" data-suit="{{ card.suit }}" data-value="{{ card.value }}" data-index="{{ loop.index0 }}">
+                                    <div class="card-inner">
+                                        <div class="card-front">
+                                            <div class="card-suit corner top-left {{ card.suit }}"></div>
+                                            <div class="card-value center">
+                                                {% if card.value in ['jack','queen','king','ace'] %}
+                                                    {{ card.value[0]|upper }}
+                                                {% else %}
+                                                    {{ card.value }}
+                                                {% endif %}
+                                            </div>
+                                            <div class="card-suit corner bottom-right {{ card.suit }}"></div>
+                                        </div>
+                                        <div class="card-back">
+                                            <div class="card-back-design"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="side-controls">
+                            <button id="play-selected" {% if not is_my_turn %}disabled{% endif %}>
+                                {% if required_cards_to_play > 1 %}
+                                Play Selected (0/{{ required_cards_to_play }})
+                                {% else %}
+                                Play Selected
+                                {% endif %}
+                            </button>
+                            <button id="skip-turn" {% if not is_my_turn or (playable_cards and not table) %}disabled{% endif %}>Skip Turn</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rules Modal -->
+    <div class="rules-modal" id="rules-modal">
+        <div class="rules-content">
+            <h2>Game Rules</h2>
+            <ul>
+                <li>Play cards with <strong>equal or higher value</strong> than the top card on the table.</li>
+                <li>You can play <strong>multiple cards of the same value</strong> in a single turn.</li>
+                <li>If a player starts a round with multiple cards, the next player must play the same number of cards or skip.</li>
+                <li>If you play a card with the <strong>same value</strong> as the previously played card, the next player's turn is skipped.</li>
+                <li>If you can't play, you must <strong>skip your turn</strong>.</li>
+                <li>The goal is to get rid of all your cards first.</li>
+                <li><span class="special-card">Special Cards:</span>
+                    <ul>
+                        <li><span class="special-card">2 (Joker):</span> Can be played on any card regardless of value.</li>
+                        <li><span class="special-card">Ace:</span> Clears the table and gives you another turn.</li>
+                    </ul>
+                </li>
+                <li>If all players skip, the table is cleared and a new round begins.</li>
+                <li><span class="special-card">Card Exchange:</span> At the beginning of each game:
+                    <ul>
+                        <li>The President gets to choose 2 cards from the Culo's hand to receive, and then selects 2 cards from their own hand to give to the Culo.</li>
+                        <li>After that, the Vice-President and Vice-Culo exchange 1 card each in the same manner.</li>
+                        <li>This gives players with higher ranks an advantage for the next game.</li>
+                    </ul>
+                </li>
+            </ul>
+            <button class="close-rules" id="close-rules">Close</button>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="settings-modal" id="settings-modal">
+        <div class="settings-content">
+            <h2>Settings</h2>
+            <div class="settings-option">
+                <h3>Player Name</h3>
+                <p>Clear your saved player name from this browser. You'll need to enter it again next time you join.</p>
+                <button id="clear-player-name" class="settings-button">Clear Saved Player Name</button>
+            </div>
+            <button class="close-settings" id="close-settings">Close</button>
+        </div>
+    </div>
+    
+    <!-- Add host controls panel -->
+    <div class="host-controls" id="host-controls">
+        <h3>Host Controls</h3>
+        <div class="host-controls-buttons">
+            <button class="host-btn new-game" id="host-new-game">🎮 New Game</button>
+            <button class="host-btn reset-game" id="host-reset-game">🔄 Reset Game</button>
+            <button class="host-btn assign-roles" id="host-assign-roles">👑 Assign Roles</button>
+            <button class="host-btn change-deck" id="host-change-deck">🃏 Change Deck Size</button>
+        </div>
+    </div>
+    
+    <!-- Role assignment modal -->
+    <div class="role-assignment-modal" id="role-assignment-modal">
+        <div class="role-assignment-content">
+            <h2>Assign Player Roles</h2>
+            <div class="role-assignment-players" id="role-assignment-players">
+                <!-- Will be populated dynamically -->
+            </div>
+            <div class="role-assignment-buttons">
+                <button class="cancel-roles-btn" id="cancel-roles-btn">Cancel</button>
+                <button class="save-roles-btn" id="save-roles-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Deck size modal -->
+    <div class="role-assignment-modal" id="deck-size-modal">
+        <div class="role-assignment-content">
+            <h2>Change Deck Size</h2>
+            <div class="deck-size-options">
+                <div class="deck-size-option">
+                    <input type="radio" id="deck-size-025" name="deck-size" value="0.25">
+                    <label for="deck-size-025">1/4 Deck (13 cards)</label>
+                </div>
+                <div class="deck-size-option">
+                    <input type="radio" id="deck-size-05" name="deck-size" value="0.5">
+                    <label for="deck-size-05">1/2 Deck (26 cards)</label>
+                </div>
+                <div class="deck-size-option">
+                    <input type="radio" id="deck-size-1" name="deck-size" value="1" checked>
+                    <label for="deck-size-1">1 Deck (52 cards)</label>
+                </div>
+                <div class="deck-size-option">
+                    <input type="radio" id="deck-size-2" name="deck-size" value="2">
+                    <label for="deck-size-2">2 Decks (104 cards)</label>
+                </div>
+                <div class="deck-size-option">
+                    <input type="radio" id="deck-size-3" name="deck-size" value="3">
+                    <label for="deck-size-3">3 Decks (156 cards)</label>
+                </div>
+            </div>
+            <div class="deck-size-info">
+                <p>Changing the deck size will take effect on the next game reset.</p>
+            </div>
+            <div class="role-assignment-buttons">
+                <button class="cancel-roles-btn" id="cancel-deck-btn">Cancel</button>
+                <button class="save-roles-btn" id="save-deck-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html> 

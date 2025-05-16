@@ -1,0 +1,38 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project Context: Multiplayer Card Game "Culo"
+
+This project is about building a web-based multiplayer card game called "Culo" using Flask for the backend and HTML, CSS, and JavaScript for the frontend.
+
+**Core Functionality:**
+
+*   **Backend:** Implemented in [app.py](mdc:app.py), it manages game state, player turns, card dealing, and game logic. It uses Flask sessions for player identification and a global `game_state` dictionary.
+*   **Frontend:**
+    *   Templates are stored in the `templates/` directory, including [game.html](mdc:templates/game.html) for the main game interface, [join.html](mdc:templates/join.html) for player name input, and [spectator.html](mdc:templates/spectator.html) for users who join a full game.
+    *   Styling is handled by [app/static/css/style.css](mdc:app/static/css/style.css).
+    *   Client-side logic is in [app/static/js/game.js](mdc:app/static/js/game.js), which communicates with the backend via fetch requests (e.g., to `/get_game_state`, `/play_card`, `/skip_turn`).
+*   **Multiplayer:**
+    *   Supports up to 4 players.
+    *   Players join by entering their name.
+    *   Game starts automatically when 2 or more players join.
+    *   Real-time updates are achieved by the client polling the `/get_game_state` endpoint.
+*   **Card Management:**
+    *   The entire deck is distributed among players.
+    *   Cards are represented as CSS-styled elements, not images.
+*   **Game Rules Implemented ("Culo"):**
+    1.  **Basic Play:** Players must play a card of equal or higher value than the top card on the table, or skip their turn. If all players skip, the table is cleared.
+    2.  **Ace Power:** Playing an Ace clears the table, resets skipped statuses, and grants the player an extra turn.
+    3.  **Two as Joker:** '2' cards can be played on any card, regardless of value. Players can select which card value (3 through Ace) they want the joker to represent if playing only joker(s). If a joker is played alongside one or more non-joker cards of the same value (e.g., two Kings and a Joker), the joker automatically assumes the value of the non-joker cards without requiring selection. This allows for strategic plays like matching previous cards to skip players or playing as an Ace to clear the table.
+    4.  **Same Value Skip:** Playing a card with the same value as the previously played card skips the next player's turn.
+    5.  **Multiple Card Play:** Players can select and play multiple cards of the same value in a single turn. If a player starts a round with multiple cards, all subsequent players must play the same number of cards or skip their turn. (This includes jokers automatically assuming the value of other cards if played together).
+    6.  **Card Play Interaction:**
+        *   **Starting a Round (Empty Table):** The first player must select one or more cards of the same value from their hand and click "Play Selected". This action sets the number of cards required for subsequent plays in that round.
+        *   **Single Card Play (Ongoing Round):** If the current round requires only one card to be played (and the table is not empty), clicking a playable card in the hand will immediately play it.
+        *   **Multi-Card Play (Ongoing Round):** If the current round requires multiple cards (e.g., two cards after someone started with a pair), players must select the exact number of required cards (all of the same value) and click "Play Selected".
+        *   **Joker Value Selection:** When playing *only* one or more jokers (2s), a modal appears allowing the player to choose which card value they want the jokers to represent. The jokers are then played with the properties of the selected value but are visually marked. If a joker is played with non-joker cards, its value is automatically assigned to match the non-joker cards.
+    7.  **Return to Last Card Player:** If a round returns to the player who placed the last card (i.e., all other players skipped or were skipped, and no new card was played), the table is cleared and that player starts the new round—they do **not** get to play a card on top of their own card. This rule is already implemented in [app.py](mdc:app.py).
+    8.  **Player Roles System:** The game implements a role system where players can be assigned different roles (President, Vice-President, Neutral, or Culo) by the host. These roles are visually indicated in the UI and can be used to track player status across multiple rounds in tournament play. The host can assign roles manually through the host controls panel, which is accessible only to the first player who joined the game.
+    9.  **Game Completion:** The game continues until all players have finished their hands and received their rankings. Players who finish their hands early are automatically removed from the turn rotation but can still watch the game progress. The first player to finish gets the Gold rank, the second gets Silver, the third gets Bronze, and the last player to finish (with no cards left to play) gets the Loser rank (Culo). Once all players have finished, roles are automatically assigned based on rankings: Gold becomes President, Silver becomes Vice-President, Bronze becomes Vice-Culo, and Loser becomes Culo. 

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Game</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Card Game</h1>
+        
+        <div class="game-area">
+            <div class="section">
+                <h2>Your Hand</h2>
+                <div class="card-container" id="player-hand">
+                    {% for card in player_hand %}
+                    <div class="card" data-suit="{{ card.suit }}" data-value="{{ card.value }}" data-index="{{ loop.index0 }}">
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <div class="card-value">{{ card.value }}</div>
+                                <div class="card-suit {{ card.suit }}">{{ card.suit }}</div>
+                            </div>
+                            <div class="card-back">
+                                <div class="card-back-design"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2>Table</h2>
+                <div class="card-container" id="table">
+                    {% for card in table %}
+                    <div class="card" data-suit="{{ card.suit }}" data-value="{{ card.value }}">
+                        <div class="card-inner">
+                            <div class="card-front">
+                                <div class="card-value">{{ card.value }}</div>
+                                <div class="card-suit {{ card.suit }}">{{ card.suit }}</div>
+                            </div>
+                            <div class="card-back">
+                                <div class="card-back-design"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="reset-game">Reset Game</button>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/game.js') }}"></script>
+</body>
+</html> 
