@@ -285,15 +285,42 @@ def get_game_state_route():
                     break
 
             if cp_id_for_skip and not game_state['players'][cp_id_for_skip]['skipped'] and game_state['players'][cp_id_for_skip]['rank'] is None:
-                # Store the current player position for the skip animation
+                timed_out_player = game_state['players'][cp_id_for_skip]
                 game_state['last_skipped_position'] = game_state['current_player_index']
-                # Add a timeout message instead of skipping
-                util_add_system_message(
-                    game_state, f"⏳ {game_state['players'][cp_id_for_skip]['name']} was skipped due to timeout!", "warning")
-                game_state['last_action'] = f"{game_state['players'][cp_id_for_skip]['name']} was skipped due to timeout"
-                # Advance to next player without marking as skipped
+
+                # Attempt to add 3 cards to the player's hand
+                full_deck = util_create_deck(game_state)
+                cards_in_play = set()
+                for p_data in game_state['players'].values():
+                    for card in p_data['hand']:
+                        cards_in_play.add((card['value'], card['suit']))
+                for card in game_state['table']:
+                    cards_in_play.add((card['value'], card['suit']))
+
+                available_cards = [
+                    card for card in full_deck if (card['value'], card['suit']) not in cards_in_play
+                ]
+
+                if len(available_cards) >= 3:
+                    cards_to_add = random.sample(available_cards, 3)
+                    timed_out_player['hand'].extend(cards_to_add)
+                    timed_out_player['hand'] = util_sort_cards(timed_out_player['hand'])
+                    util_add_system_message(
+                        game_state,
+                        f"⏳ {timed_out_player['name']} timed out and received 3 extra cards!",
+                        "warning"
+                    )
+                    game_state['last_action'] = f"{timed_out_player['name']} timed out and received 3 cards"
+                else:
+                    util_add_system_message(
+                        game_state,
+                        f"⏳ {timed_out_player['name']} timed out! (Not enough cards in deck to penalize).",
+                        "warning"
+                    )
+                    game_state['last_action'] = f"{timed_out_player['name']} timed out"
+
                 advance_to_next_player(game_state, save_game_state)
-                save_game_state()  # Make sure to save the game state after the timeout
+                save_game_state()
                 player_data_initial = game_state['players'][player_id]
 
     player_data = game_state['players'][player_id]
