@@ -55,17 +55,9 @@ No code, just vibes. That's how we roll in 2025! Feel free to fork, share, and s
 
 ## ⚠️ Bug Alert
 
-**IMPORTANT:** This project is currently in early development and is EXTREMELY buggy. Expect frequent crashes, game state inconsistencies, and unexpected behavior. Key known issues:
 
-- Game state may become corrupted during play
-- Players might get stuck in turns
-- Card exchanges sometimes fail
-- Multiple card plays can break the game logic
-- Browser refreshes may disconnect players
-
-Use at your own risk - this is more of a proof of concept than a stable game right now!
-
-## 🤣 Meta Disclaimer
+## Meta Disclaimer
+🐜 **Vibe Bugs:** This project is currently in buggy, but claude tried his best so be kind.
 
 **Plot twist:** Even this README is 100% vibe coded! That's right - I didn't write a single word of this document either. Just vibed with the AI and it created this whole README while I sipped my coffee. The AI is writing about itself writing code... we're in deep, folks! Maybe the real code was the vibes we made along the way. 
 
