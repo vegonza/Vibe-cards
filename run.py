@@ -158,7 +158,8 @@ def join_game():
 
             game_state['players'][player_id] = {
                 'name': sanitized_name, 'hand': [], 'position': player_position,
-                'skipped': False, 'rank': None, 'is_host': is_host, 'role': 'neutral'
+                'skipped': False, 'rank': None, 'is_host': is_host, 'role': 'neutral',
+                'inactive_turns': 0  # Initialize inactive turns counter
             }
 
             system_message_text = f"👑 {sanitized_name} has joined as the host!" if is_host else f"👋 {sanitized_name} has joined the game!"
@@ -297,40 +298,70 @@ def get_game_state_route():
                 timed_out_player = game_state['players'][cp_id_for_skip]
                 game_state['last_skipped_position'] = game_state['current_player_index']
 
-                # Attempt to add 3 cards to the player's hand
-                full_deck = util_create_deck(game_state)
-                cards_in_play = set()
-                for p_data in game_state['players'].values():
-                    for card in p_data['hand']:
-                        cards_in_play.add((card['value'], card['suit']))
-                for card in game_state['table']:
-                    cards_in_play.add((card['value'], card['suit']))
+                # Increment inactive turns counter
+                timed_out_player['inactive_turns'] += 1
 
-                available_cards = [
-                    card for card in full_deck if (card['value'], card['suit']) not in cards_in_play
-                ]
+                # Check if player should be auto-kicked
+                if timed_out_player['inactive_turns'] >= game_state.get('inactive_turns_threshold', 3):
+                    # Get the player name before removing them
+                    kicked_player_name = timed_out_player['name']
 
-                if len(available_cards) >= 3:
-                    cards_to_add = random.sample(available_cards, 3)
-                    timed_out_player['hand'].extend(cards_to_add)
-                    timed_out_player['hand'] = util_sort_cards(timed_out_player['hand'])
+                    # Remove the player from the game
+                    del game_state['players'][cp_id_for_skip]
+
+                    # If the player was in rankings, remove them
+                    if cp_id_for_skip in game_state.get('rankings', []):
+                        game_state['rankings'].remove(cp_id_for_skip)
+
+                    # Add system message
                     util_add_system_message(
                         game_state,
-                        f"⏳ {timed_out_player['name']} timed out and received 3 extra cards!",
+                        f"👢 {kicked_player_name} was automatically kicked after {game_state.get('inactive_turns_threshold', 3)} inactive turns!",
                         "warning"
                     )
-                    game_state['last_action'] = f"{timed_out_player['name']} timed out and received 3 cards"
+                    game_state['last_action'] = f"{kicked_player_name} was auto-kicked for inactivity"
+
+                    # If the game is in progress, redistribute cards
+                    if game_state['started'] and len(game_state['players']) >= 2:
+                        action_redistribute_cards(game_state, save_game_state)
                 else:
-                    util_add_system_message(
-                        game_state,
-                        f"⏳ {timed_out_player['name']} timed out! (Not enough cards in deck to penalize).",
-                        "warning"
-                    )
-                    game_state['last_action'] = f"{timed_out_player['name']} timed out"
+                    # Attempt to add 3 cards to the player's hand
+                    full_deck = util_create_deck(game_state)
+                    cards_in_play = set()
+                    for p_data in game_state['players'].values():
+                        for card in p_data['hand']:
+                            cards_in_play.add((card['value'], card['suit']))
+                    for card in game_state['table']:
+                        cards_in_play.add((card['value'], card['suit']))
+
+                    available_cards = [
+                        card for card in full_deck if (card['value'], card['suit']) not in cards_in_play
+                    ]
+
+                    if len(available_cards) >= 3:
+                        cards_to_add = random.sample(available_cards, 3)
+                        timed_out_player['hand'].extend(cards_to_add)
+                        timed_out_player['hand'] = util_sort_cards(timed_out_player['hand'])
+                        util_add_system_message(
+                            game_state,
+                            f"⏳ {timed_out_player['name']} timed out and received 3 extra cards! ({timed_out_player['inactive_turns']}/{game_state.get('inactive_turns_threshold', 3)} inactive turns)",
+                            "warning"
+                        )
+                        game_state['last_action'] = f"{timed_out_player['name']} timed out and received 3 cards"
+                    else:
+                        util_add_system_message(
+                            game_state,
+                            f"⏳ {timed_out_player['name']} timed out! ({timed_out_player['inactive_turns']}/{game_state.get('inactive_turns_threshold', 3)} inactive turns) (Not enough cards in deck to penalize).",
+                            "warning"
+                        )
+                        game_state['last_action'] = f"{timed_out_player['name']} timed out"
 
                 advance_to_next_player(game_state, save_game_state)
                 save_game_state()
-                player_data_initial = game_state['players'][player_id]
+                player_data_initial = game_state['players'][player_id] if player_id in game_state['players'] else None
+                if player_data_initial is None:
+                    # The current player was auto-kicked
+                    return jsonify({'success': False, 'error': 'You were kicked for inactivity', 'redirect': url_for('index')})
 
     player_data = game_state['players'][player_id]
     is_my_turn = game_state['current_player_index'] == player_data['position']

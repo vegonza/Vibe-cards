@@ -32,6 +32,7 @@ def init_game_state():
         'turn_start_time': None,  # Track when the current turn started
         'last_skipped_position': None,  # Track the position of the last player who skipped
         'table_video_id': 'Y_bYby1O-2I',  # Default YouTube video ID for the table background
+        'inactive_turns_threshold': 3,  # Number of consecutive inactive turns before auto-kick
         'card_exchange': {
             'active': False,  # Whether card exchange is currently active
             'president_id': None,  # ID of the president player

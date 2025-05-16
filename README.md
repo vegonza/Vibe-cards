@@ -19,6 +19,7 @@ This is a fully vibe-coded project ✨, meaning it was created entirely by AI wi
 - 📱 Responsive web interface
 - 🤖 100% AI-generated code
 - ✅ Zero manual coding, all vibes
+- 🚫 Auto-kick inactive players after 3 turns
 
 ## 🎮 Game Rules
 

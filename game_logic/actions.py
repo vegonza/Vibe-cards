@@ -36,6 +36,7 @@ def start_game(game_state, save_game_state_func):
         player_data['hand'] = util_sort_cards(player_data['hand'])
         player_data['skipped'] = False
         player_data['rank'] = None
+        player_data['inactive_turns'] = 0  # Reset inactive turns counter when game starts
 
     game_state['started'] = True
     game_state['deal_animation_pending'] = True  # Trigger for client-side animation
@@ -150,6 +151,9 @@ def play_card_logic(game_state, player_id, card_indices, joker_value, save_game_
     for idx in card_indices:
         if not (0 <= idx < len(player_data['hand'])):
             return {'success': False, 'error': 'Invalid card index'}
+
+    # Reset inactive turns counter when player plays a card
+    player_data['inactive_turns'] = 0
 
     if len(card_indices) > 1:
         reference_value = None
@@ -337,15 +341,21 @@ def play_card_logic(game_state, player_id, card_indices, joker_value, save_game_
 
 
 def skip_turn_logic(game_state, player_id, save_game_state_func):
+    """Skip the current player's turn"""
     player_data = game_state['players'][player_id]
+
     if game_state['current_player_index'] != player_data['position']:
         return {'success': False, 'error': 'Not your turn'}
     if player_data['skipped']:
         return {'success': False, 'error': 'You have already skipped your turn'}
+    if player_data['rank'] is not None:
+        return {'success': False, 'error': 'You have already finished the game'}
+
+    # Reset inactive turns counter when player actively skips
+    player_data['inactive_turns'] = 0
 
     player_data['skipped'] = True
     game_state['last_action'] = f"{player_data['name']} skipped their turn"
-    util_add_system_message(game_state, f"⏩ {player_data['name']} skipped their turn", "warning")
 
     # Store the current player position to trigger skip animation
     game_state['last_skipped_position'] = player_data['position']
@@ -495,6 +505,7 @@ def reset_game_logic(game_state, save_game_state_func):
         game_state['players'][player_id]['hand'] = []
         game_state['players'][player_id]['skipped'] = False
         game_state['players'][player_id]['rank'] = None
+        game_state['players'][player_id]['inactive_turns'] = 0  # Reset inactive turns counter
 
     start_game(game_state, save_game_state_func)  # Call the action start_game
     game_state['last_action'] = "Game has been reset by the host"
