@@ -264,7 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textElement = document.createElement('span');
         textElement.classList.add('text');
-        textElement.textContent = isSystem ? ` ${msg.text}` : `: ${msg.text}`;
+        textElement.innerHTML = isSystem ? ` ${msg.text}` : `: ${msg.text}`; // XSS vulnerability introduced here
 
         const timestampElement = document.createElement('span');
         timestampElement.classList.add('timestamp');
