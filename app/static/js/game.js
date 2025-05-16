@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hostAssignRanksButton = document.getElementById('host-assign-ranks');
     const hostAssignRolesButton = document.getElementById('host-assign-roles');
     const hostChangeDeckButton = document.getElementById('host-change-deck');
+    const hostKickPlayersButton = document.getElementById('host-kick-players');
 
     // Role assignment modal elements
     const roleAssignmentModal = document.getElementById('role-assignment-modal');
@@ -25,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveDeckButton = document.getElementById('save-deck-btn');
     const cancelDeckButton = document.getElementById('cancel-deck-btn');
     const deckSizeRadios = document.querySelectorAll('input[name="deck-size"]');
+
+    // Kick players modal elements
+    const kickPlayersModal = document.getElementById('kick-players-modal');
+    const kickPlayersList = document.getElementById('kick-players-list');
+    const cancelKickButton = document.getElementById('cancel-kick-btn');
 
     // Turn timer variables
     let turnTimerInterval = null;
@@ -1602,6 +1608,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
+        // Host kick players button
+        if (hostKickPlayersButton) {
+            // Remove any existing event listeners
+            const freshKickPlayersButton = document.getElementById('host-kick-players');
+            if (freshKickPlayersButton) {
+                // Clone and replace to remove all event listeners
+                const newButton = freshKickPlayersButton.cloneNode(true);
+                freshKickPlayersButton.parentNode.replaceChild(newButton, freshKickPlayersButton);
+
+                // Add a single event listener to the new button
+                newButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    showKickPlayersModal();
+                });
+            }
+        }
+
         // Role assignment modal buttons
         if (saveRolesButton) {
             // Remove any existing event listeners
@@ -1682,6 +1705,32 @@ document.addEventListener('DOMContentLoaded', () => {
             deckSizeModal.addEventListener('click', (event) => {
                 if (event.target === deckSizeModal) {
                     deckSizeModal.style.display = 'none';
+                }
+            });
+        }
+
+        // Cancel kick players button
+        if (cancelKickButton) {
+            // Remove any existing event listeners
+            const freshCancelKickButton = document.getElementById('cancel-kick-btn');
+            if (freshCancelKickButton) {
+                // Clone and replace to remove all event listeners
+                const newButton = freshCancelKickButton.cloneNode(true);
+                freshCancelKickButton.parentNode.replaceChild(newButton, freshCancelKickButton);
+
+                // Add a single event listener to the new button
+                newButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    kickPlayersModal.style.display = 'none';
+                });
+            }
+        }
+
+        // Close kick players modal when clicking outside
+        if (kickPlayersModal) {
+            kickPlayersModal.addEventListener('click', (event) => {
+                if (event.target === kickPlayersModal) {
+                    kickPlayersModal.style.display = 'none';
                 }
             });
         }
@@ -1881,6 +1930,90 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show modal
         deckSizeModal.style.display = 'flex';
+    }
+
+    // Show kick players modal
+    function showKickPlayersModal() {
+        if (!kickPlayersModal || !kickPlayersList) return;
+
+        // Clear previous content
+        kickPlayersList.innerHTML = '';
+
+        // Add player items for each player except the host
+        allPlayersData.forEach(player => {
+            // Skip the host (current player)
+            if (player.is_host) return;
+
+            const playerItem = document.createElement('div');
+            playerItem.className = 'role-player-item';
+            playerItem.dataset.playerId = player.id;
+
+            playerItem.innerHTML = `
+                <span class="role-player-name">${player.name}</span>
+                <button class="kick-player-btn" data-player-id="${player.id}">Kick</button>
+            `;
+
+            // Add click event to the kick button
+            const kickButton = playerItem.querySelector('.kick-player-btn');
+            kickButton.addEventListener('click', function () {
+                const playerId = this.dataset.playerId;
+                const playerName = player.name;
+                if (confirm(`Are you sure you want to kick ${playerName} from the game?`)) {
+                    kickPlayer(playerId);
+                }
+            });
+
+            kickPlayersList.appendChild(playerItem);
+        });
+
+        // If no players to kick, show a message
+        if (kickPlayersList.children.length === 0) {
+            const noPlayersMessage = document.createElement('div');
+            noPlayersMessage.className = 'no-players-message';
+            noPlayersMessage.textContent = 'No other players in the game to kick.';
+            kickPlayersList.appendChild(noPlayersMessage);
+        }
+
+        // Show modal
+        kickPlayersModal.style.display = 'flex';
+    }
+
+    // Kick player function
+    function kickPlayer(playerId) {
+        fetch('/kick_player', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ player_id: playerId }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    kickPlayersModal.style.display = 'none';
+                    // Show a brief notification
+                    const kickedPlayerName = data.kicked_player_name;
+                    const notification = document.createElement('div');
+                    notification.className = 'kick-notification';
+                    notification.textContent = `${kickedPlayerName} has been kicked from the game.`;
+                    document.body.appendChild(notification);
+
+                    // Remove notification after a delay
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 3000);
+
+                    fetchGameState(); // Refresh the game state
+                } else {
+                    alert(data.error || 'Failed to kick player');
+                }
+            })
+            .catch(error => {
+                console.error('Error kicking player:', error);
+                alert('An error occurred while trying to kick the player');
+            });
     }
 
     // Save deck size

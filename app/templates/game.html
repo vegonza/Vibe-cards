@@ -558,6 +558,7 @@
             <button class="host-btn reset-game" id="host-reset-game">🔄 Reset Game</button>
             <button class="host-btn assign-roles" id="host-assign-roles">👑 Assign Roles</button>
             <button class="host-btn change-deck" id="host-change-deck">🃏 Change Deck Size</button>
+            <button class="host-btn kick-players" id="host-kick-players">👢 Kick Players</button>
         </div>
     </div>
     
@@ -607,6 +608,22 @@
             <div class="role-assignment-buttons">
                 <button class="cancel-roles-btn" id="cancel-deck-btn">Cancel</button>
                 <button class="save-roles-btn" id="save-deck-btn">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Kick players modal -->
+    <div class="role-assignment-modal" id="kick-players-modal">
+        <div class="role-assignment-content">
+            <h2>Kick Players</h2>
+            <div class="kick-players-info">
+                <p>Select a player to kick from the game:</p>
+            </div>
+            <div class="role-assignment-players" id="kick-players-list">
+                <!-- Will be populated dynamically -->
+            </div>
+            <div class="role-assignment-buttons">
+                <button class="cancel-roles-btn" id="cancel-kick-btn">Cancel</button>
             </div>
         </div>
     </div>

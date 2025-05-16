@@ -463,6 +463,52 @@ def exchange_card():
     return jsonify(result)
 
 
+@app.route('/kick_player', methods=['POST'])
+def kick_player():
+    # Check if the requesting player is the host
+    host_player_id = session.get('player_id')
+    if host_player_id != game_state.get('host_player_id'):
+        return jsonify({'success': False, 'error': 'Only the host can kick players'})
+
+    data = request.get_json()
+    player_id_to_kick = data.get('player_id')
+
+    # Check if the player exists
+    if not player_id_to_kick or player_id_to_kick not in game_state['players']:
+        return jsonify({'success': False, 'error': 'Player not found'})
+
+    # Cannot kick yourself (the host)
+    if player_id_to_kick == host_player_id:
+        return jsonify({'success': False, 'error': 'You cannot kick yourself'})
+
+    # Get the player name before removing them
+    kicked_player_name = game_state['players'][player_id_to_kick]['name']
+    host_name = game_state['players'][host_player_id]['name']
+
+    # Remove the player from the game
+    del game_state['players'][player_id_to_kick]
+
+    # If the player was in rankings, remove them
+    if player_id_to_kick in game_state.get('rankings', []):
+        game_state['rankings'].remove(player_id_to_kick)
+
+    # Add system message
+    add_system_message(f"👢 {host_name} kicked {kicked_player_name} from the game!", "warning")
+
+    # If the game is in progress, redistribute cards
+    if game_state['started'] and len(game_state['players']) >= 2:
+        action_redistribute_cards(game_state, save_game_state)
+
+    # Save game state
+    save_game_state()
+
+    return jsonify({
+        'success': True,
+        'kicked_player_name': kicked_player_name,
+        'refresh': True
+    })
+
+
 if __name__ == '__main__':
     # Ensure game_state is loaded before running
     if not os.path.exists(GAME_STATE_FILE):
