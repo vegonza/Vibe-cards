@@ -31,6 +31,7 @@ def init_game_state():
         'deck_size': 1,  # Default to 1 deck, options: 0.25, 0.5, 1, 2, 3
         'turn_start_time': None,  # Track when the current turn started
         'last_skipped_position': None,  # Track the position of the last player who skipped
+        'table_video_id': 'Y_bYby1O-2I',  # Default YouTube video ID for the table background
         'card_exchange': {
             'active': False,  # Whether card exchange is currently active
             'president_id': None,  # ID of the president player

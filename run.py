@@ -76,6 +76,10 @@ def load_game_state():
                             if sub_key not in game_state[key]:
                                 game_state[key][sub_key] = sub_default_value
 
+                # Initialize table_video_id if not present
+                if 'table_video_id' not in game_state:
+                    game_state['table_video_id'] = 'Y_bYby1O-2I'  # Default video ID
+
                 util_add_system_message(game_state, "🔄 Game state loaded from saved file.", "info")
                 return True
     except Exception as e:
@@ -201,7 +205,8 @@ def game():
         is_my_turn=is_my_turn, current_player_index=game_state['current_player_index'],
         can_play=can_play, playable_cards=playable_cards_indices, top_card=top_card,
         game_name=game_state['game_name'], last_action=game_state['last_action'],
-        chat_messages=game_state['chat_messages'], required_cards_to_play=game_state['required_cards_to_play']
+        chat_messages=game_state['chat_messages'], required_cards_to_play=game_state['required_cards_to_play'],
+        table_video_id=game_state.get('table_video_id', 'Y_bYby1O-2I')
     )
 
 
@@ -398,7 +403,8 @@ def get_game_state_route():
         'turn_timer': turn_timer_info,
         'last_skipped_position': game_state.pop('last_skipped_position', None),
         'last_card_played': game_state.get('last_card_played'),
-        'deal_animation_pending': game_state.get('deal_animation_pending', False)
+        'deal_animation_pending': game_state.get('deal_animation_pending', False),
+        'table_video_id': game_state.get('table_video_id', 'Y_bYby1O-2I')
     }
 
     return jsonify(response_data)
@@ -569,6 +575,45 @@ def kick_player():
     return jsonify({
         'success': True,
         'kicked_player_name': kicked_player_name,
+        'refresh': True
+    })
+
+
+@app.route('/change_video', methods=['POST'])
+def change_video():
+    player_id = session.get('player_id')
+    if not player_id or player_id not in game_state['players']:
+        return jsonify({'success': False, 'error': 'Player not found'})
+
+    # Check if the requesting player is the host
+    if player_id != game_state['host_player_id']:
+        return jsonify({'success': False, 'error': 'Only the host can change the video'})
+
+    data = request.get_json()
+    if not data or 'video_id' not in data:
+        return jsonify({'success': False, 'error': 'No video ID provided'})
+
+    video_id = data['video_id']
+    if not video_id or not isinstance(video_id, str):
+        return jsonify({'success': False, 'error': 'Invalid video ID'})
+
+    # Simple validation for YouTube video ID format
+    if not re.match(r'^[A-Za-z0-9_-]{11}$', video_id):
+        return jsonify({'success': False, 'error': 'Invalid YouTube video ID format'})
+
+    # Update the video ID in the game state
+    game_state['table_video_id'] = video_id
+
+    # Add a system message about the video change
+    host_name = game_state['players'][player_id]['name']
+    add_system_message(f"📺 {host_name} changed the table background video.", "info")
+
+    # Save the game state
+    save_game_state()
+
+    return jsonify({
+        'success': True,
+        'video_id': video_id,
         'refresh': True
     })
 

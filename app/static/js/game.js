@@ -735,6 +735,20 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    // Function to extract YouTube video ID from iframe src
+    function extractVideoIdFromSrc(src) {
+        if (!src) return null;
+
+        // Handle youtube.com/embed/ format
+        const embedRegex = /youtube\.com\/embed\/([^?&#]+)/;
+        const embedMatch = src.match(embedRegex);
+        if (embedMatch && embedMatch[1]) {
+            return embedMatch[1];
+        }
+
+        return null;
+    }
+
     // Update game state in the UI
     function updateGameState(data) {
         // Store host status
@@ -751,6 +765,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Check if game is waiting for the host to start it
         const waitingForStart = data.waiting_for_start === true;
+
+        // Update the YouTube video if it has changed
+        if (data.table_video_id) {
+            const youtubeIframe = document.querySelector('.youtube-container iframe');
+            if (youtubeIframe) {
+                const currentVideoId = extractVideoIdFromSrc(youtubeIframe.src);
+                if (currentVideoId !== data.table_video_id) {
+                    const newSrc = `https://www.youtube.com/embed/${data.table_video_id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${data.table_video_id}`;
+                    youtubeIframe.src = newSrc;
+                }
+            }
+        }
 
         // Show waiting message if game hasn't started yet
         if (waitingForStart) {

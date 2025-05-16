@@ -606,7 +606,7 @@
                         <div class="table-inner">
                             <div class="youtube-container">
                                 <iframe 
-                                    src="https://www.youtube.com/embed/Y_bYby1O-2I?autoplay=1&mute=1&controls=0&loop=1&playlist=Y_bYby1O-2I" 
+                                    src="https://www.youtube.com/embed/{{ table_video_id }}?autoplay=1&mute=1&controls=0&loop=1&playlist={{ table_video_id }}" 
                                     frameborder="0" 
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                                     allowfullscreen>
@@ -860,7 +860,7 @@
             const youtubeIframe = document.querySelector('.youtube-container iframe');
             
             // Store the current video ID
-            let currentVideoId = extractVideoId(youtubeIframe.src) || 'Y_bYby1O-2I';
+            let currentVideoId = '{{ table_video_id }}' || 'Y_bYby1O-2I';
             
             // Function to extract YouTube video ID from various URL formats
             function extractVideoId(url) {
@@ -920,13 +920,27 @@
                     const videoId = extractVideoId(inputValue);
                     
                     if (videoId) {
-                        if (updateYoutubeVideo(videoId)) {
-                            videoChangeModal.style.display = 'none';
-                            // Save to localStorage for persistence
-                            localStorage.setItem('tableVideoId', videoId);
-                        } else {
-                            alert('Could not update the video. Please try a different URL or ID.');
-                        }
+                        // Send the video ID to the server
+                        fetch('/change_video', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ video_id: videoId }),
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                videoChangeModal.style.display = 'none';
+                                // Video will be updated for all players on next game state refresh
+                            } else {
+                                alert(data.error || 'Failed to update the video.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error changing video:', error);
+                            alert('An error occurred while trying to change the video.');
+                        });
                     } else {
                         alert('Invalid YouTube URL or video ID. Please enter a valid YouTube URL or video ID.');
                     }
@@ -949,10 +963,11 @@
                 });
             }
             
-            // Load saved video from localStorage if available
-            const savedVideoId = localStorage.getItem('tableVideoId');
-            if (savedVideoId) {
-                updateYoutubeVideo(savedVideoId);
+            // Update the video when game state changes
+            function updateVideoFromGameState(videoId) {
+                if (videoId && videoId !== currentVideoId) {
+                    updateYoutubeVideo(videoId);
+                }
             }
         });
     </script>
