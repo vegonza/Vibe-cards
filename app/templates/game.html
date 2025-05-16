@@ -357,6 +357,108 @@
             border: 1px solid #7f8c8d;
         }
         
+        /* YouTube video table styles */
+        .table-circle {
+            position: relative;
+            width: 420px;
+            height: 420px;
+            border-radius: 50%;
+            border: 15px solid #2c3e50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: border-color 0.3s ease;
+            /* Remove overflow:hidden to allow player elements to be fully visible */
+        }
+        
+        .table-circle.my-turn {
+            border-color: #f39c12;
+        }
+        
+        /* Create a separate inner container for the YouTube video that's confined to the green area */
+        .table-inner {
+            position: absolute;
+            width: calc(100% - 30px); /* Account for the border */
+            height: calc(100% - 30px);
+            border-radius: 50%;
+            overflow: hidden; /* Only hide overflow for the video container */
+            z-index: 1;
+            background-color: #27ae60; /* Original green table color as fallback */
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.3); /* Inner shadow from original table */
+        }
+        
+        .youtube-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        
+        .youtube-container iframe {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150%;
+            height: 150%;
+            pointer-events: none; /* Prevent iframe from capturing clicks */
+        }
+        
+        .table-cards {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10; /* Higher z-index to appear above the video */
+        }
+        
+        .player-positions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50; /* Much higher z-index to ensure players are above everything */
+        }
+        
+        /* Ensure all player elements have high z-index */
+        .player-position {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            height: 80px;
+            z-index: 50; /* Match player-positions z-index */
+        }
+        
+        .player-avatar {
+            position: relative;
+            z-index: 51; /* Even higher z-index for the avatar */
+            text-transform: uppercase;
+        }
+        
+        .player-name-tag {
+            position: relative;
+            z-index: 51; /* Even higher z-index for the name tag */
+        }
+        
+        .card-count {
+            position: relative;
+            z-index: 51; /* Even higher z-index for the card count */
+        }
+        
+        .turn-timer-container {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 52; /* Highest z-index for the timer */
+        }
+        
         @media (max-width: 600px) {
             .game-status {
                 flex-direction: column;
@@ -370,6 +472,56 @@
             .ranking-item {
                 font-size: 0.8em;
                 padding: 2px 6px;
+            }
+            
+            .table-circle {
+                width: 320px;
+                height: 320px;
+                border-width: 12px;
+            }
+            
+            .table-inner {
+                width: calc(100% - 24px); /* Account for smaller border */
+                height: calc(100% - 24px);
+            }
+        }
+        
+        @media (max-height: 800px) {
+            .table-circle {
+                width: 350px;
+                height: 350px;
+                border-width: 12px;
+            }
+            
+            .table-inner {
+                width: calc(100% - 24px);
+                height: calc(100% - 24px);
+            }
+        }
+        
+        @media (max-height: 700px) {
+            .table-circle {
+                width: 300px;
+                height: 300px;
+                border-width: 10px;
+            }
+            
+            .table-inner {
+                width: calc(100% - 20px);
+                height: calc(100% - 20px);
+            }
+        }
+        
+        @media (max-height: 600px) {
+            .table-circle {
+                width: 250px;
+                height: 250px;
+                border-width: 8px;
+            }
+            
+            .table-inner {
+                width: calc(100% - 16px);
+                height: calc(100% - 16px);
             }
         }
     </style>
@@ -413,6 +565,19 @@
                 <!-- Circular table area - maximized -->
                 <div class="table-section">
                     <div class="table-circle">
+                        <!-- YouTube embed contained in the inner circle -->
+                        <div class="table-inner">
+                            <div class="youtube-container">
+                                <iframe 
+                                    src="https://www.youtube.com/embed/Y_bYby1O-2I?autoplay=1&mute=1&controls=0&loop=1&playlist=Y_bYby1O-2I" 
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                        </div>
+                        
+                        <!-- Cards are positioned above the video -->
                         <div class="table-cards">
                             {% for card in table %}
                             <div class="card table-card" data-suit="{{ card.suit }}" data-value="{{ card.value }}">
@@ -443,7 +608,7 @@
                             {% endfor %}
                         </div>
                         
-                        <!-- Player positions around the table -->
+                        <!-- Player positions around the table - now outside the overflow:hidden area -->
                         <div class="player-positions {% if players|length > 4 %}many-players{% endif %} {% if players|length > 8 %}lots-of-players{% endif %}">
                             {% for player in players %}
                             <div class="player-position position-{{ player.position }}" data-player-id="{{ player.id }}">
