@@ -6,6 +6,7 @@ import json
 import pickle
 import time
 from datetime import datetime
+import html  # Import html module for escaping
 
 from flask import (Flask, jsonify, redirect, render_template, request, session,
                    url_for)
@@ -152,12 +153,15 @@ def join_game():
             if is_host:
                 game_state['host_player_id'] = player_id
 
+            # Sanitize player name to prevent XSS
+            sanitized_name = html.escape(player_name)
+
             game_state['players'][player_id] = {
-                'name': player_name, 'hand': [], 'position': player_position,
+                'name': sanitized_name, 'hand': [], 'position': player_position,
                 'skipped': False, 'rank': None, 'is_host': is_host, 'role': 'neutral'
             }
 
-            system_message_text = f"👑 {player_name} has joined as the host!" if is_host else f"👋 {player_name} has joined the game!"
+            system_message_text = f"👑 {sanitized_name} has joined as the host!" if is_host else f"👋 {sanitized_name} has joined the game!"
             add_system_message(system_message_text, "info")
 
             if game_state['started']:
@@ -422,8 +426,12 @@ def send_message():
         return jsonify({'success': False, 'error': 'Message cannot be empty'})
     if len(message_text) > 200:
         return jsonify({'success': False, 'error': 'Message too long (max 200 chars)'})
+
+    # Sanitize the message text to prevent XSS
+    sanitized_message = html.escape(message_text)
+
     timestamp = datetime.now().strftime('%H:%M')
-    chat_message = {'sender': player_name, 'text': message_text, 'timestamp': timestamp, 'id': str(uuid.uuid4())}
+    chat_message = {'sender': player_name, 'text': sanitized_message, 'timestamp': timestamp, 'id': str(uuid.uuid4())}
     game_state['chat_messages'].append(chat_message)
     if len(game_state['chat_messages']) > 50:
         game_state['chat_messages'] = game_state['chat_messages'][-50:]
@@ -562,7 +570,7 @@ def kick_player():
     if player_id_to_kick in game_state.get('rankings', []):
         game_state['rankings'].remove(player_id_to_kick)
 
-    # Add system message
+    # Add system message - names are already sanitized when players join
     add_system_message(f"👢 {host_name} kicked {kicked_player_name} from the game!", "warning")
 
     # If the game is in progress, redistribute cards

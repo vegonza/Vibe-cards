@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Utility function to escape HTML and prevent XSS attacks
+    function escapeHTML(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // Get DOM elements
     const playerHand = document.getElementById('player-hand');
     const tableCards = document.querySelector('.table-cards');
@@ -246,7 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // For system messages, use a more compact format
             const textElement = document.createElement('span');
             textElement.classList.add('text');
-            textElement.innerHTML = `${icon} ${msg.text}`;
+            // Sanitize the text to prevent XSS attacks
+            textElement.innerHTML = `${icon} ${escapeHTML(msg.text)}`;
 
             const timestampElement = document.createElement('span');
             timestampElement.classList.add('timestamp');
@@ -264,7 +275,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textElement = document.createElement('span');
         textElement.classList.add('text');
-        textElement.innerHTML = isSystem ? ` ${msg.text}` : `: ${msg.text}`; // XSS vulnerability introduced here
+        // Sanitize the text to prevent XSS attacks
+        textElement.innerHTML = isSystem ? ` ${escapeHTML(msg.text)}` : `: ${escapeHTML(msg.text)}`;
 
         const timestampElement = document.createElement('span');
         timestampElement.classList.add('timestamp');
@@ -1551,7 +1563,7 @@ document.addEventListener('DOMContentLoaded', () => {
             statusLabel = `Playing ${requiredCards} cards`;
         }
 
-        // Update the indicator content
+        // Update the indicator content - using safe string literals
         indicator.innerHTML = `<span class="status-label">${statusLabel}</span>`;
 
         // Update the styling based on the number of cards
@@ -1612,9 +1624,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     break;
             }
 
+            // Use sanitized player name to prevent XSS
             rankItem.innerHTML = `
                 <span class="ranking-icon">${rankIcon}</span>
-                <span class="ranking-name">${rank.player_name}</span>
+                <span class="ranking-name">${escapeHTML(rank.player_name)}</span>
             `;
 
             rankingsContainer.appendChild(rankItem);
@@ -1961,8 +1974,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 'culo': 'Culo 💩'
             };
 
+            // Use sanitized player name to prevent XSS
             playerItem.innerHTML = `
-                <span class="role-player-name">${player.name}</span>
+                <span class="role-player-name">${escapeHTML(player.name)}</span>
                 <select class="role-selector">
                     ${roleOptions.map(role =>
                 `<option value="${role}" ${role === currentRole ? 'selected' : ''}>${roleDisplayNames[role]}</option>`
@@ -2005,8 +2019,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const rankOptions = ['none', 'gold', 'silver', 'bronze', 'loser'];
             const currentRank = player.rank || 'none';
 
+            // Use sanitized player name to prevent XSS
             playerItem.innerHTML = `
-                <span class="role-player-name">${player.name}</span>
+                <span class="role-player-name">${escapeHTML(player.name)}</span>
                 <select class="role-selector">
                     ${rankOptions.map(rank =>
                 `<option value="${rank}" ${rank === currentRank ? 'selected' : ''}>${rank.charAt(0).toUpperCase() + rank.slice(1)}</option>`
@@ -2025,6 +2040,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Show modal
         roleAssignmentModal.style.display = 'flex';
+    }
+
+    // Show kick players modal
+    function showKickPlayersModal() {
+        if (!kickPlayersModal || !kickPlayersList) return;
+
+        // Clear previous content
+        kickPlayersList.innerHTML = '';
+
+        // Add player items for each player except the host
+        allPlayersData.forEach(player => {
+            // Skip the host (current player)
+            if (player.is_host) return;
+
+            const playerItem = document.createElement('div');
+            playerItem.className = 'role-player-item';
+            playerItem.dataset.playerId = player.id;
+
+            // Use sanitized player name to prevent XSS
+            playerItem.innerHTML = `
+                <span class="role-player-name">${escapeHTML(player.name)}</span>
+                <button class="kick-player-btn" data-player-id="${player.id}">Kick</button>
+            `;
+
+            // Add click event to the kick button
+            const kickButton = playerItem.querySelector('.kick-player-btn');
+            kickButton.addEventListener('click', function () {
+                const playerId = this.dataset.playerId;
+                const playerName = escapeHTML(player.name); // Sanitize for the confirmation dialog
+                if (confirm(`Are you sure you want to kick ${playerName} from the game?`)) {
+                    kickPlayer(playerId);
+                }
+            });
+
+            kickPlayersList.appendChild(playerItem);
+        });
+
+        // If no players to kick, show a message
+        if (kickPlayersList.children.length === 0) {
+            const noPlayersMessage = document.createElement('div');
+            noPlayersMessage.className = 'no-players-message';
+            noPlayersMessage.textContent = 'No other players in the game to kick.';
+            kickPlayersList.appendChild(noPlayersMessage);
+        }
+
+        // Show modal
+        kickPlayersModal.style.display = 'flex';
     }
 
     // Save player roles
@@ -2126,52 +2188,6 @@ document.addEventListener('DOMContentLoaded', () => {
         deckSizeModal.style.display = 'flex';
     }
 
-    // Show kick players modal
-    function showKickPlayersModal() {
-        if (!kickPlayersModal || !kickPlayersList) return;
-
-        // Clear previous content
-        kickPlayersList.innerHTML = '';
-
-        // Add player items for each player except the host
-        allPlayersData.forEach(player => {
-            // Skip the host (current player)
-            if (player.is_host) return;
-
-            const playerItem = document.createElement('div');
-            playerItem.className = 'role-player-item';
-            playerItem.dataset.playerId = player.id;
-
-            playerItem.innerHTML = `
-                <span class="role-player-name">${player.name}</span>
-                <button class="kick-player-btn" data-player-id="${player.id}">Kick</button>
-            `;
-
-            // Add click event to the kick button
-            const kickButton = playerItem.querySelector('.kick-player-btn');
-            kickButton.addEventListener('click', function () {
-                const playerId = this.dataset.playerId;
-                const playerName = player.name;
-                if (confirm(`Are you sure you want to kick ${playerName} from the game?`)) {
-                    kickPlayer(playerId);
-                }
-            });
-
-            kickPlayersList.appendChild(playerItem);
-        });
-
-        // If no players to kick, show a message
-        if (kickPlayersList.children.length === 0) {
-            const noPlayersMessage = document.createElement('div');
-            noPlayersMessage.className = 'no-players-message';
-            noPlayersMessage.textContent = 'No other players in the game to kick.';
-            kickPlayersList.appendChild(noPlayersMessage);
-        }
-
-        // Show modal
-        kickPlayersModal.style.display = 'flex';
-    }
-
     // Kick player function
     function kickPlayer(playerId) {
         fetch('/kick_player', {
@@ -2186,7 +2202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     kickPlayersModal.style.display = 'none';
                     // Show a brief notification
-                    const kickedPlayerName = data.kicked_player_name;
+                    const kickedPlayerName = escapeHTML(data.kicked_player_name); // Sanitize player name
                     const notification = document.createElement('div');
                     notification.className = 'kick-notification';
                     notification.textContent = `${kickedPlayerName} has been kicked from the game.`;
