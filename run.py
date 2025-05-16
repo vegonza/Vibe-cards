@@ -370,7 +370,8 @@ def get_game_state_route():
         'card_exchange': card_exchange_display_info,
         'turn_timer': turn_timer_info,
         'last_skipped_position': game_state.pop('last_skipped_position', None),
-        'last_card_played': game_state.get('last_card_played')
+        'last_card_played': game_state.get('last_card_played'),
+        'deal_animation_pending': game_state.get('deal_animation_pending', False)
     }
 
     return jsonify(response_data)

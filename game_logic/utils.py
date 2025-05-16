@@ -46,7 +46,8 @@ def init_game_state():
             'completed': False,  # Whether all exchanges are completed
             'current_exchange': 'president',  # Current exchange: 'president' or 'vice'
             'phase': 'receive'  # Current phase: 'receive' or 'give'
-        }
+        },
+        'deal_animation_pending': False,  # Added for deal animation
     }
 
 

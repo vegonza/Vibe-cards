@@ -1,30 +1,11 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Get DOM elements
     const playerHand = document.getElementById('player-hand');
-    const tableCards = document.getElementById('table-cards');
-    const playersContainer = document.getElementById('players-container');
-    const playerNameDisplay = document.getElementById('player-name');
-    const systemMessages = document.getElementById('system-messages');
-    const playSelectedButton = document.getElementById('play-selected');
+    const tableCards = document.querySelector('.table-cards');
     const skipTurnButton = document.getElementById('skip-turn');
+    const playSelectedButton = document.getElementById('play-selected');
     const lastActionElement = document.getElementById('last-action');
-    const rulesButton = document.getElementById('rules-button');
-    const rulesModal = document.getElementById('rules-modal');
-    const closeRulesButton = document.getElementById('close-rules');
-    const settingsButton = document.getElementById('settings-button');
-    const settingsModal = document.getElementById('settings-modal');
-    const closeSettingsButton = document.getElementById('close-settings');
-    const roleAssignmentModal = document.getElementById('role-assignment-modal');
-    const roleAssignmentPlayers = document.getElementById('role-assignment-players');
-    const cancelRolesButton = document.getElementById('cancel-roles-btn');
-    const deckSizeModal = document.getElementById('deck-size-modal');
-    const cancelDeckButton = document.getElementById('cancel-deck-btn');
-    const saveDeckButton = document.getElementById('save-deck-btn');
-    const kickPlayersModal = document.getElementById('kick-players-modal');
-    const kickPlayersList = document.getElementById('kick-players-list');
-    const cancelKickButton = document.getElementById('cancel-kick-btn');
-    const exchangeNotificationModal = document.getElementById('exchange-notification-modal');
-    const exchangeNotificationMessage = document.getElementById('exchange-notification-message');
+    const tableCircleElement = document.querySelector('.table-circle'); // Added for animation origin
 
     // Host controls elements
     const hostControlsPanel = document.getElementById('host-controls');
@@ -52,10 +33,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const kickPlayersModal = document.getElementById('kick-players-modal');
     const kickPlayersList = document.getElementById('kick-players-list');
     const cancelKickButton = document.getElementById('cancel-kick-btn');
-
-    // Exchange notification modal elements
-    const exchangeNotificationModal = document.getElementById('exchange-notification-modal');
-    const exchangeNotificationMessage = document.getElementById('exchange-notification-message');
 
     // Turn timer variables
     let turnTimerInterval = null;
@@ -97,6 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let exchangePhase = 'receive';
     let culoHand = [];
     let viceCuloHand = [];
+
+    // Client-side animation flags
+    let dealAnimationInProgress = false;
+    let hasInitialDealAnimationPlayed = false;
+    const DEAL_ANIMATION_CARD_DURATION = 150; // ms per card for animation
+    const DEAL_ANIMATION_STAGGER_DELAY = 75; // ms stagger for each card animation start
 
     // Chat elements
     const chatLog = document.getElementById('chat-log');
@@ -228,23 +211,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-    }
-
-    // Exchange notification modal functionality
-    if (exchangeNotificationModal) {
-        // Close modal when clicking outside of it
-        exchangeNotificationModal.addEventListener('click', (event) => {
-            if (event.target === exchangeNotificationModal) {
-                exchangeNotificationModal.style.display = 'none';
-            }
-        });
-
-        // Close modal with escape key
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape' && exchangeNotificationModal.style.display === 'flex') {
-                exchangeNotificationModal.style.display = 'none';
-            }
-        });
     }
 
     // Helper function to create a chat message DOM element
@@ -772,106 +738,83 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update game state in the UI
     function updateGameState(data) {
         // Store host status
-        isHost = data.is_host;
+        isHost = data.is_host === true;
 
-        // Store local player name for optimistic chat updates
-        localPlayerName = data.player_name || "Me";
-
-        // Update player name display
-        if (playerNameDisplay) {
-            playerNameDisplay.textContent = data.player_name || "Unknown Player";
+        // Update localPlayerName from server data if available
+        if (data.my_name) {
+            localPlayerName = data.my_name;
         }
+        // These are the primary declarations for this function's scope
+        const myName = data.my_name;
+        const gameIsOver = data.game_over === true;
+        const playerHasFinished = data.rankings && data.rankings.some(r => r.player_name === myName);
 
-        // Update player hand
-        if (playerHand) {
-            playerHand.innerHTML = '';
-            if (data.player_hand && data.player_hand.length > 0) {
-                data.player_hand.forEach((card, index) => {
-                    const cardElement = createCardElement(card, index, !data.is_my_turn || data.player_has_finished);
-                    playerHand.appendChild(cardElement);
-                });
-                organizeCardsInTwoRows();
-            } else {
-                playerHand.innerHTML = '<div class="empty-hand">No cards</div>';
+        // Check if game is waiting for the host to start it
+        const waitingForStart = data.waiting_for_start === true;
+
+        // Show waiting message if game hasn't started yet
+        if (waitingForStart) {
+            const statusBadge = document.getElementById('cards-required-indicator');
+            if (statusBadge) {
+                statusBadge.innerHTML = '<span class="status-label">Waiting for host to start the game...</span>';
+                statusBadge.style.backgroundColor = 'rgba(243, 156, 18, 0.2)';
+                statusBadge.style.borderColor = '#f39c12';
             }
         }
 
-        // Store player has finished state
-        playerHasFinished = data.player_has_finished || false;
-
-        // Update table cards
-        if (tableCards) {
-            tableCards.innerHTML = '';
-            if (data.table && data.table.length > 0) {
-                data.table.forEach(card => {
-                    const cardElement = createCardElement(card, null, true);
-                    tableCards.appendChild(cardElement);
-                });
-            } else {
-                tableCards.innerHTML = '<div class="empty-table">Table is empty</div>';
-            }
-        }
-
-        // Update players
-        if (playersContainer) {
-            updatePlayerPositions(data.players);
-        }
-
-        // Update system messages
-        if (systemMessages && data.system_messages) {
-            // Clear existing messages
-            systemMessages.innerHTML = '';
-
-            // Add messages
-            data.system_messages.forEach(msg => {
-                const messageElement = document.createElement('div');
-                messageElement.className = `system-message ${msg.type || ''}`;
-                messageElement.textContent = msg.text;
-                systemMessages.appendChild(messageElement);
+        // Track skipped status changes to detect newly skipped players
+        const previousSkippedStatus = {};
+        if (allPlayersData && allPlayersData.length > 0) {
+            allPlayersData.forEach(player => {
+                previousSkippedStatus[player.id] = player.skipped;
             });
+        }
 
-            // Add clear button if there are messages
-            if (data.system_messages.length > 0) {
-                addClearSystemMessagesButton();
+        // Store all players data
+        allPlayersData = data.players || [];
+
+        // Check for newly skipped players (for matching card skip animation)
+        if (data.last_action && data.last_action.includes('skipped')) {
+            console.log("Detected skipped action:", data.last_action);
+
+            // Find players that were newly skipped
+            data.players.forEach(player => {
+                if (player.skipped && (!previousSkippedStatus[player.id] || previousSkippedStatus[player.id] === false)) {
+                    console.log("Found newly skipped player:", player.name, "at position", player.position);
+
+                    // Show skip animation with a slight delay to make it more visible
+                    setTimeout(() => {
+                        showSkipAnimation(player.position);
+                    }, 300);
+                }
+            });
+        }
+
+        // Check for last_skipped_position (from matching cards or timeout)
+        if (data.last_skipped_position !== undefined) {
+            console.log("Found last_skipped_position:", data.last_skipped_position);
+
+            // Check if this was a timeout skip based on the last action message
+            const isTimeout = data.last_action && data.last_action.toLowerCase().includes('timeout');
+
+            setTimeout(() => {
+                showSkipAnimation(data.last_skipped_position, isTimeout);
+            }, 300);
+        }
+
+        // Store current deck size if provided
+        if (data.deck_size !== undefined) {
+            currentDeckSize = data.deck_size;
+        }
+
+        // Update the table border based on turn status
+        const tableCircle = document.querySelector('.table-circle');
+        if (tableCircle) {
+            if (data.is_my_turn && !playerHasFinished && !data.game_over) {
+                tableCircle.classList.add('my-turn');
+            } else {
+                tableCircle.classList.remove('my-turn');
             }
-
-            // Scroll to bottom
-            systemMessages.scrollTop = systemMessages.scrollHeight;
-        }
-
-        // Update chat messages
-        if (chatLog && data.chat_messages) {
-            displayChatMessages(data.chat_messages);
-        }
-
-        // Update required cards to play
-        requiredCardsToPlay = data.required_cards_to_play || 1;
-        updateCardsRequiredIndicator(requiredCardsToPlay);
-
-        // Update selected cards array if needed
-        if (selectedCards.length > requiredCardsToPlay) {
-            selectedCards = [];
-        }
-
-        // Update play button state
-        updatePlaySelectedButtonState(playerHasFinished);
-
-        // Update skip button state
-        if (skipTurnButton) {
-            skipTurnButton.disabled = !data.is_my_turn || data.player_has_finished || (data.playable_cards && !data.table);
-        }
-
-        // Update rankings if available
-        if (data.rankings) {
-            updateRankingsDisplay(data.rankings);
-        }
-
-        // Update last action if available
-        if (lastActionElement && data.last_action) {
-            lastActionElement.innerHTML = data.last_action;
-            lastActionElement.style.display = 'block';
-        } else if (lastActionElement) {
-            lastActionElement.style.display = 'none';
         }
 
         // Update turn timer if provided
@@ -906,55 +849,214 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Check if we need to show the card exchange modal
             handleCardExchangeState(data.player_hand);
-
-            // Show notification modal for players not involved in the exchange
-            if (cardExchangeActive && !exchangeCompleted &&
-                !isPresident && !isCulo && !isVicePresident && !isViceCulo) {
-
-                // Get the names of players involved in the current exchange
-                let exchangingPlayers = [];
-                let presidentName = "";
-                let culoName = "";
-                let vicePresidentName = "";
-                let viceCuloName = "";
-
-                // Find player names from the players data
-                if (data.players) {
-                    data.players.forEach(player => {
-                        if (player.id === data.card_exchange.president_id) {
-                            presidentName = player.name;
-                        } else if (player.id === data.card_exchange.culo_id) {
-                            culoName = player.name;
-                        } else if (player.id === data.card_exchange.vice_president_id) {
-                            vicePresidentName = player.name;
-                        } else if (player.id === data.card_exchange.vice_culo_id) {
-                            viceCuloName = player.name;
-                        }
-                    });
-                }
-
-                // Set message based on current exchange
-                if (currentExchange === 'president') {
-                    exchangeNotificationMessage.textContent =
-                        `${presidentName} (President) is exchanging cards with ${culoName} (Culo).`;
-                } else if (currentExchange === 'vice') {
-                    exchangeNotificationMessage.textContent =
-                        `${vicePresidentName} (Vice-President) is exchanging cards with ${viceCuloName} (Vice-Culo).`;
-                }
-
-                // Show the notification modal
-                exchangeNotificationModal.style.display = 'flex';
-            } else {
-                // Hide the notification modal when exchange is completed or player is involved
-                exchangeNotificationModal.style.display = 'none';
-            }
         } else {
             cardExchangeActive = false;
-            exchangeNotificationModal.style.display = 'none';
         }
 
         // Setup host controls
         setupHostControls();
+
+        // Check for deal animation trigger
+        if (data.deal_animation_pending && !hasInitialDealAnimationPlayed && !dealAnimationInProgress) {
+            console.log("Deal animation triggered.");
+            hasInitialDealAnimationPlayed = true; // Set this immediately to prevent re-trigger
+
+            performDealAnimation(data, () => {
+                console.log("Deal animation complete. Rendering final state.");
+                // Animation complete: render the actual hand and table from data
+                // These are new consts for the callback scope, which is fine.
+                const animCompleteMyName = data.my_name;
+                const animCompleteGameIsOver = data.game_over === true;
+                const animCompletePlayerHasFinished = data.rankings && data.rankings.some(r => r.player_name === animCompleteMyName);
+
+                renderPlayerHand(data.player_hand, data.playable_cards, data.is_my_turn, animCompleteGameIsOver, animCompletePlayerHasFinished, data.rankings, animCompleteMyName);
+                renderTableCards(data.table);
+                updatePlaySelectedButtonState(animCompletePlayerHasFinished);
+            });
+        } else if (!data.deal_animation_pending) {
+            // If server says no animation is pending, reset the client-side flag.
+            hasInitialDealAnimationPlayed = false;
+        }
+
+        // Store current selection indices before updating hand
+        const currentSelection = [...selectedCards];
+
+        // Clear selection array as we'll rebuild it
+        selectedCards = [];
+
+        // Update the cards required indicator
+        updateCardsRequiredIndicator(data.required_cards_to_play);
+
+        // Update rankings display
+        updateRankingsDisplay(data.rankings || []);
+
+        // Update player's hand and table only if no animation is in progress
+        if (!dealAnimationInProgress) {
+            // Ensure this block uses the myName, gameIsOver, playerHasFinished from the top of updateGameState
+            // DO NOT redeclare them here with new const keywords.
+            renderPlayerHand(data.player_hand, data.playable_cards, data.is_my_turn, gameIsOver, playerHasFinished, data.rankings, myName);
+            renderTableCards(data.table);
+        }
+
+        // Update player positions
+        updatePlayerPositions(data.players);
+
+        // Re-add event listeners to new cards
+        addCardListeners();
+
+        // Organize cards in two rows
+        organizeCardsInTwoRows();
+
+        // Display chat messages
+        displayChatMessages(data.chat_messages);
+
+        // Make sure the clear system messages button is available
+        addClearSystemMessagesButton();
+
+        // Update button states
+        if (skipTurnButton) {
+            // Disable skip button if:
+            // 1. Game is over OR
+            // 2. It's not the player's turn OR
+            // 3. Player has finished (has a rank) OR
+            // 4. Card exchange is active and not completed
+            if (gameIsOver || !data.is_my_turn || playerHasFinished || (cardExchangeActive && !exchangeCompleted)) {
+                skipTurnButton.disabled = true;
+            } else {
+                // Enable skip button only when:
+                // 1. It's the player's turn AND
+                // 2. Either they have no playable cards OR the table is not empty
+                const canSkip = data.is_my_turn &&
+                    (!data.playable_cards.length || data.table.length > 0);
+                skipTurnButton.disabled = !canSkip;
+            }
+        }
+
+        // Update play selected button state (handles visibility and text)
+        updatePlaySelectedButtonState(playerHasFinished);
+    }
+
+    // New function to encapsulate hand rendering
+    function renderPlayerHand(handData, playableCardIndices, isMyTurn, gameIsOver, currentPlayerHasFinished, rankings, myName) {
+        const currentSelection = [...selectedCards]; // Preserve selection if any
+        selectedCards = [];
+
+        playerHand.innerHTML = '';
+        if (handData) {
+            handData.forEach((card, index) => {
+                let isDisabled = gameIsOver || !isMyTurn || currentPlayerHasFinished;
+                if (!gameIsOver && isMyTurn && !currentPlayerHasFinished && playableCardIndices && !playableCardIndices.includes(index)) {
+                    isDisabled = true;
+                }
+                const cardElement = createCardElement(card, index, isDisabled);
+                if (currentSelection.includes(index) && !isDisabled) {
+                    cardElement.classList.add('selected');
+                    selectedCards.push(index);
+                }
+                playerHand.appendChild(cardElement);
+            });
+        }
+        addCardListeners();
+        organizeCardsInTwoRows();
+        updatePlaySelectedButtonState(currentPlayerHasFinished);
+    }
+
+    // New function to encapsulate table rendering
+    function renderTableCards(tableData) {
+        tableCards.innerHTML = '';
+        if (tableData) {
+            const tableCardsArray = [...tableData];
+            tableCardsArray.forEach(card => {
+                const cardElement = createCardElement(card, null, true); // Table cards are always "disabled" for clicking
+                cardElement.classList.add('table-card');
+                tableCards.appendChild(cardElement);
+            });
+
+            if (tableCardsArray.length > 0) {
+                const lastCard = tableCardsArray[tableCardsArray.length - 1];
+                const lastCardElement = tableCards.lastChild;
+                if (lastCardElement && lastCard.id && lastCard.id !== lastAnimatedCardId) {
+                    lastCardElement.classList.add('played');
+                    lastAnimatedCardId = lastCard.id;
+                }
+            }
+        }
+    }
+
+    async function performDealAnimation(gameStateData, onCompleteCallback) {
+        console.log("Performing deal animation for player:", gameStateData.my_name);
+        dealAnimationInProgress = true; // Set flag
+
+        const myHandData = gameStateData.player_hand;
+        const numCardsToAnimate = myHandData ? myHandData.length : 0;
+
+        playerHand.innerHTML = ''; // Clear hand for animation
+        if (!tableCircleElement) {
+            console.error("Table circle element not found for animation origin.");
+            dealAnimationInProgress = false;
+            if (onCompleteCallback) onCompleteCallback();
+            return;
+        }
+        const handRect = playerHand.getBoundingClientRect();
+        const tableRect = tableCircleElement.getBoundingClientRect();
+
+        const tableCenterX = tableRect.left + tableRect.width / 2;
+        const tableCenterY = tableRect.top + tableRect.height / 2;
+
+        const cardPromises = [];
+
+        for (let i = 0; i < numCardsToAnimate; i++) {
+            const cardData = myHandData[i];
+            const cardElement = createCardElement(cardData, i, true); // Create card, initially disabled
+
+            cardElement.style.position = 'fixed';
+            cardElement.style.left = `${tableCenterX - cardElement.offsetWidth / 2}px`;
+            cardElement.style.top = `${tableCenterY - cardElement.offsetHeight / 2}px`;
+            cardElement.style.transform = 'scale(0.5) rotate(' + (Math.random() * 30 - 15) + 'deg)';
+            cardElement.style.opacity = '0';
+            cardElement.style.zIndex = '3000';
+            document.body.appendChild(cardElement);
+
+            // Approximate target position in hand, considering scroll and layout
+            const cardWidth = 60; // From CSS
+            const cardGap = 8; // From CSS for .two-row-hand gap
+            const cardsPerRow = Math.floor(playerHand.clientWidth / (cardWidth + cardGap)) || 5;
+            const targetCol = i % cardsPerRow;
+            const targetRow = Math.floor(i / cardsPerRow);
+
+            const targetXInHand = targetCol * (cardWidth + cardGap) + playerHand.scrollLeft;
+            const targetYInHand = targetRow * (cardElement.offsetHeight + cardGap); // Assuming card height is consistent
+
+            const targetPageX = handRect.left + targetXInHand;
+            const targetPageY = handRect.top + targetYInHand;
+
+            const promise = new Promise(async (resolve) => {
+                await new Promise(r => setTimeout(r, i * DEAL_ANIMATION_STAGGER_DELAY));
+
+                cardElement.style.transition = `all ${DEAL_ANIMATION_CARD_DURATION / 1000}s ease-out`;
+                void cardElement.offsetWidth; // Trigger reflow
+
+                cardElement.style.left = `${targetPageX}px`;
+                cardElement.style.top = `${targetPageY}px`;
+                cardElement.style.transform = 'scale(1) rotate(0deg)';
+                cardElement.style.opacity = '1';
+
+                setTimeout(() => {
+                    if (cardElement.parentNode === document.body) {
+                        document.body.removeChild(cardElement);
+                    }
+                    resolve();
+                }, DEAL_ANIMATION_CARD_DURATION + 50);
+            });
+            cardPromises.push(promise);
+        }
+
+        await Promise.all(cardPromises);
+
+        dealAnimationInProgress = false; // Clear flag
+        if (onCompleteCallback) {
+            onCompleteCallback();
+        }
     }
 
     // Function to organize cards in two rows
@@ -2119,7 +2221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleCardExchangeState(playerHand) {
         if (!cardExchangeActive || exchangeCompleted) {
             cardExchangeModal.style.display = 'none';
-            exchangeNotificationModal.style.display = 'none';
             return;
         }
 
@@ -2134,7 +2235,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     'receive',
                     'president'
                 );
-                exchangeNotificationModal.style.display = 'none';
             } else if (exchangePhase === 'give' && presidentCardsToGive.length < 2) {
                 showCardExchangeModal(
                     'President: Select Cards to Give (2)',
@@ -2143,7 +2243,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     'give',
                     'president'
                 );
-                exchangeNotificationModal.style.display = 'none';
             } else {
                 cardExchangeModal.style.display = 'none';
             }
@@ -2157,7 +2256,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     'receive',
                     'vice'
                 );
-                exchangeNotificationModal.style.display = 'none';
             } else if (exchangePhase === 'give' && vicePresidentCardToGive === null) {
                 showCardExchangeModal(
                     'Vice-President: Select Card to Give (1)',
@@ -2166,47 +2264,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     'give',
                     'vice'
                 );
-                exchangeNotificationModal.style.display = 'none';
             } else {
                 cardExchangeModal.style.display = 'none';
             }
         } else {
             cardExchangeModal.style.display = 'none';
-
-            // Show notification for players not involved in the exchange
-            if (!isPresident && !isCulo && !isVicePresident && !isViceCulo) {
-                // Find player names for the current exchange
-                let message = "";
-
-                // Get player names from allPlayersData
-                let presidentName = "President";
-                let culoName = "Culo";
-                let vicePresidentName = "Vice-President";
-                let viceCuloName = "Vice-Culo";
-
-                allPlayersData.forEach(player => {
-                    if (player.role === 'president') {
-                        presidentName = player.name;
-                    } else if (player.role === 'culo') {
-                        culoName = player.name;
-                    } else if (player.role === 'vice-president') {
-                        vicePresidentName = player.name;
-                    } else if (player.role === 'vice-culo') {
-                        viceCuloName = player.name;
-                    }
-                });
-
-                if (currentExchange === 'president') {
-                    message = `${presidentName} (President) is exchanging cards with ${culoName} (Culo).`;
-                } else if (currentExchange === 'vice') {
-                    message = `${vicePresidentName} (Vice-President) is exchanging cards with ${viceCuloName} (Vice-Culo).`;
-                }
-
-                exchangeNotificationMessage.textContent = message;
-                exchangeNotificationModal.style.display = 'flex';
-            } else {
-                exchangeNotificationModal.style.display = 'none';
-            }
         }
     }
 

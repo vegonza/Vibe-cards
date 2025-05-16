@@ -17,7 +17,12 @@ def start_game(game_state, save_game_state_func):
     if num_players == 0:  # Cannot start game with no players
         return
 
+    # Ensure strictly equal number of cards
     cards_per_player = len(deck) // num_players
+    # We will only use cards that can be distributed perfectly evenly.
+    # The remaining cards are effectively discarded for this deal.
+    cards_to_deal_total = cards_per_player * num_players
+    deck_for_dealing = deck[:cards_to_deal_total]
 
     sorted_players = sorted(game_state['players'].items(), key=lambda x: x[1]['position'])
 
@@ -26,13 +31,14 @@ def start_game(game_state, save_game_state_func):
 
     for i, (player_id, player_data) in enumerate(sorted_players):
         start_idx = i * cards_per_player
-        end_idx = (i + 1) * cards_per_player if i < num_players - 1 else len(deck)
-        player_data['hand'] = deck[start_idx:end_idx]
+        end_idx = start_idx + cards_per_player  # Each player gets exactly cards_per_player
+        player_data['hand'] = deck_for_dealing[start_idx:end_idx]
         player_data['hand'] = util_sort_cards(player_data['hand'])
         player_data['skipped'] = False
         player_data['rank'] = None
 
     game_state['started'] = True
+    game_state['deal_animation_pending'] = True  # Trigger for client-side animation
     game_state['waiting_for_start'] = False  # Set waiting_for_start to False when starting
     position_order = [0, 2, 3, 1, 4, 6, 7, 5, 8, 9, 10, 11]
     player_positions = [player['position'] for player in game_state['players'].values()]
@@ -478,6 +484,7 @@ def reset_game_logic(game_state, save_game_state_func):
     game_state['required_cards_to_play'] = 1
     game_state['rankings'] = []
     game_state['waiting_for_start'] = True  # Set waiting_for_start to True when resetting
+    game_state['deal_animation_pending'] = False  # Reset before start_game is called
     game_state['card_exchange'].update({
         'active': False, 'president_id': None, 'culo_id': None, 'vice_president_id': None, 'vice_culo_id': None,
         'president_cards_to_receive': [], 'president_cards_to_give': [], 'vice_president_card_to_receive': None,
