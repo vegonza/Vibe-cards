@@ -53,8 +53,6 @@ This is a fully vibe-coded project ✨, meaning it was created entirely by AI wi
 
 No code, just vibes. That's how we roll in 2025! Feel free to fork, share, and spread the good vibes. Remember - why code when you can vibe? 😎✌️
 
-## ⚠️ Bug Alert
-
 
 ## Meta Disclaimer
 🐜 **Vibe Bugs:** This project is currently in buggy, but claude tried his best so be kind.
