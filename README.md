@@ -49,4 +49,10 @@ This is a fully vibe-coded project ✨, meaning it was created entirely by AI wi
 
 ## 🙌 Vibe With Us
 
-No code, just vibes. That's how we roll in 2025! Feel free to fork, share, and spread the good vibes. Remember - why code when you can vibe? 😎✌️ 
+No code, just vibes. That's how we roll in 2025! Feel free to fork, share, and spread the good vibes. Remember - why code when you can vibe? 😎✌️
+
+## 🤣 Meta Disclaimer
+
+**Plot twist:** Even this README is 100% vibe coded! That's right - I didn't write a single word of this document either. Just vibed with the AI and it created this whole README while I sipped my coffee. The AI is writing about itself writing code... we're in deep, folks! Maybe the real code was the vibes we made along the way. 
+
+⚠️ **Warning:** Excessive exposure to vibe coding may result in forgetting how to code manually, spontaneous usage of the 🔥 emoji, and telling everyone at parties that you're "more of a vibe architect than a developer." Side effects include increased productivity, decreased stress, and occasionally explaining to your boss that "the AI did it." ⚠️ 
