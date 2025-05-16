@@ -33,6 +33,7 @@ def start_game(game_state, save_game_state_func):
         player_data['rank'] = None
 
     game_state['started'] = True
+    game_state['waiting_for_start'] = False  # Set waiting_for_start to False when starting
     position_order = [0, 2, 3, 1, 4, 6, 7, 5, 8, 9, 10, 11]
     player_positions = [player['position'] for player in game_state['players'].values()]
     first_player_position = next((pos for pos in position_order if pos in player_positions), 0)
@@ -476,6 +477,7 @@ def reset_game_logic(game_state, save_game_state_func):
     game_state['winner'] = None
     game_state['required_cards_to_play'] = 1
     game_state['rankings'] = []
+    game_state['waiting_for_start'] = True  # Set waiting_for_start to True when resetting
     game_state['card_exchange'].update({
         'active': False, 'president_id': None, 'culo_id': None, 'vice_president_id': None, 'vice_culo_id': None,
         'president_cards_to_receive': [], 'president_cards_to_give': [], 'vice_president_card_to_receive': None,

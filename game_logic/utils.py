@@ -15,6 +15,7 @@ def init_game_state():
         'table': [],
         'current_player_index': 0,
         'started': False,
+        'waiting_for_start': True,  # New field to indicate we're waiting for host to start the game
         'last_card_played': None,
         'game_name': 'Culo',
         'last_action': None,  # To track if a player skipped or played a card
@@ -29,6 +30,7 @@ def init_game_state():
         'host_player_id': None,  # Track the host player (first to join)
         'deck_size': 1,  # Default to 1 deck, options: 0.25, 0.5, 1, 2, 3
         'turn_start_time': None,  # Track when the current turn started
+        'last_skipped_position': None,  # Track the position of the last player who skipped
         'card_exchange': {
             'active': False,  # Whether card exchange is currently active
             'president_id': None,  # ID of the president player

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const hostAssignRolesButton = document.getElementById('host-assign-roles');
     const hostChangeDeckButton = document.getElementById('host-change-deck');
     const hostKickPlayersButton = document.getElementById('host-kick-players');
+    const hostStartGameButton = document.getElementById('host-start-game');
 
     // Role assignment modal elements
     const roleAssignmentModal = document.getElementById('role-assignment-modal');
@@ -735,6 +736,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update localPlayerName from server data if available
         if (data.my_name) {
             localPlayerName = data.my_name;
+        }
+
+        // Check if game is waiting for the host to start it
+        const waitingForStart = data.waiting_for_start === true;
+
+        // Show waiting message if game hasn't started yet
+        if (waitingForStart) {
+            const statusBadge = document.getElementById('cards-required-indicator');
+            if (statusBadge) {
+                statusBadge.innerHTML = '<span class="status-label">Waiting for host to start the game...</span>';
+                statusBadge.style.backgroundColor = 'rgba(243, 156, 18, 0.2)';
+                statusBadge.style.borderColor = '#f39c12';
+            }
         }
 
         // Track skipped status changes to detect newly skipped players
@@ -1479,6 +1493,51 @@ document.addEventListener('DOMContentLoaded', () => {
             hostControlsPanel.style.display = 'block';
         } else if (hostControlsPanel) {
             hostControlsPanel.style.display = 'none';
+        }
+
+        // Host start game button
+        if (hostStartGameButton) {
+            // Remove any existing event listeners
+            const freshStartGameButton = document.getElementById('host-start-game');
+            if (freshStartGameButton) {
+                // Show/hide based on game state
+                const waitingForStart = document.getElementById('cards-required-indicator')?.innerText.includes('Waiting for host');
+                freshStartGameButton.style.display = waitingForStart ? 'block' : 'none';
+
+                // Clone and replace to remove all event listeners
+                const newButton = freshStartGameButton.cloneNode(true);
+                freshStartGameButton.parentNode.replaceChild(newButton, freshStartGameButton);
+
+                // Add a single event listener to the new button
+                newButton.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    if (confirm('Are you sure you want to start the game?')) {
+                        // Disable the button temporarily to prevent multiple clicks
+                        this.disabled = true;
+
+                        fetch('/start_game', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            }
+                        })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success && data.refresh) {
+                                    fetchGameState();
+                                } else if (data.error) {
+                                    alert(data.error);
+                                    this.disabled = false; // Re-enable the button on error
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error starting game:', error);
+                                alert('Failed to start the game. Please try again.');
+                                this.disabled = false; // Re-enable the button on error
+                            });
+                    }
+                });
+            }
         }
 
         // Host new game button
