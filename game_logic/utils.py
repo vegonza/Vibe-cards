@@ -167,11 +167,11 @@ def util_assign_automatic_roles(game_state, save_game_state_func=None):
     for player_id in game_state['players']:
         if game_state['players'][player_id]['role'] != 'neutral':
             game_state['players'][player_id]['role'] = 'neutral'
-            roles_changed = True  # Technically, this isn't the primary trigger for saving, but good to note
+            roles_changed = True
 
     # Only assign roles if we have at least 2 players
     if total_players >= 2:
-        # First player is president
+        # First player is always president
         if len(game_state['rankings']) > 0:
             president_id = game_state['rankings'][0]
             if president_id in game_state['players']:  # Check if player exists
@@ -181,7 +181,7 @@ def util_assign_automatic_roles(game_state, save_game_state_func=None):
                     president_name = game_state['players'][president_id]['name']
                     util_add_system_message(game_state, f"👑 {president_name} is now the President!", "success")
 
-        # Last player is culo
+        # Last player is always culo
         if len(game_state['rankings']) > 0:
             culo_id = game_state['rankings'][-1]
             if culo_id in game_state['players']:  # Check if player exists
@@ -191,7 +191,11 @@ def util_assign_automatic_roles(game_state, save_game_state_func=None):
                     culo_name = game_state['players'][culo_id]['name']
                     util_add_system_message(game_state, f"💩 {culo_name} is now the Culo!", "warning")
 
-        # If we have at least 4 players, assign vice roles
+        # For 3 players: president, neutral, culo
+        # For 4 players: president, vice-president, vice-culo, culo
+        # For 5+ players: president, vice-president, neutrals, vice-culo, culo
+
+        # Assign vice roles only if we have at least 4 players
         if total_players >= 4:
             # Second player is vice-president
             if len(game_state['rankings']) > 1:
@@ -206,15 +210,16 @@ def util_assign_automatic_roles(game_state, save_game_state_func=None):
 
             # Second-to-last player is vice-culo
             if len(game_state['rankings']) > 2:  # Ensure there are enough players for this role
-                vice_culo_index = total_players - 2
-                if vice_culo_index < len(game_state['rankings']) and vice_culo_index >= 0:  # Check index bounds
-                    vice_culo_id = game_state['rankings'][vice_culo_index]
-                    if vice_culo_id in game_state['players']:  # Check if player exists
-                        if game_state['players'][vice_culo_id]['role'] != 'vice-culo':
-                            game_state['players'][vice_culo_id]['role'] = 'vice-culo'
-                            roles_changed = True
-                            vice_culo_name = game_state['players'][vice_culo_id]['name']
-                            util_add_system_message(game_state, f"💩 {vice_culo_name} is now the Vice-Culo!", "warning")
+                vice_culo_id = game_state['rankings'][-2]
+                if vice_culo_id in game_state['players']:  # Check if player exists
+                    if game_state['players'][vice_culo_id]['role'] != 'vice-culo':
+                        game_state['players'][vice_culo_id]['role'] = 'vice-culo'
+                        roles_changed = True
+                        vice_culo_name = game_state['players'][vice_culo_id]['name']
+                        util_add_system_message(game_state, f"💩 {vice_culo_name} is now the Vice-Culo!", "warning")
+
+        # For players between vice-president and vice-culo (in 5+ player games), keep them as neutral
+        # This is already handled by the initial role reset to neutral
 
         if roles_changed:
             util_add_system_message(
