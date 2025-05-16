@@ -374,6 +374,7 @@ def advance_to_next_player(game_state, save_game_state_func):
     player_current_positions = {p['position']
                                 for p_id, p in game_state['players'].items() if p_id in game_state['current_game_players']}
     active_positions = [pos for pos in position_order if pos in player_current_positions]
+    active_positions.sort()  # Sort numerically for correct turn order
     if not active_positions:
         return  # No active players
 
