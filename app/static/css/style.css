@@ -16,16 +16,76 @@ body {
 
 /* Chat Styles - MOVED FROM game.html */
 #chat-container {
-    width: 25%;
-    min-width: 250px;
-    max-width: 350px;
-    height: 100%;
-    display: flex;
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    width: 350px;
+    height: 400px;
+    display: none;
+    /* Hidden by default */
     flex-direction: column;
     background-color: #2c3e50;
     padding: 10px;
-    border-right: 2px solid #1a252f;
+    border-left: 2px solid #1a252f;
+    border-top: 2px solid #1a252f;
     box-sizing: border-box;
+    z-index: 1000;
+    box-shadow: -5px -5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 10px 0 0 0;
+}
+
+#chat-container.active {
+    display: flex;
+    /* Show when active class is added */
+}
+
+/* Chat toggle button */
+#chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    transition: all 0.3s ease;
+}
+
+#chat-toggle:hover {
+    background-color: #2980b9;
+    transform: scale(1.05);
+}
+
+#chat-toggle .notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid #2c3e50;
+    display: none;
+    /* Hidden by default */
+}
+
+#chat-toggle .notification-badge.active {
+    display: flex;
+    /* Show when there are new messages */
 }
 
 #chat-container h3 {
@@ -33,6 +93,23 @@ body {
     text-align: center;
     margin-bottom: 10px;
     font-size: 1.2em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.close-chat {
+    background: none;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.close-chat:hover {
+    color: #c0392b;
+    transform: scale(1.1);
 }
 
 #chat-log {
@@ -176,6 +253,7 @@ body {
 /* Game Layout Styles - MOVED FROM game.html */
 .game-layout {
     display: flex;
+    flex-direction: column;
     height: 100vh;
     width: 100vw;
     overflow: auto;
@@ -185,11 +263,12 @@ body {
 .game-content-area {
     flex-grow: 1;
     height: 100%;
+    width: 100%;
+    /* Use full width now that chat is in a popup */
     display: flex;
     flex-direction: column;
     overflow: hidden;
     padding: 10px;
-    /* Increased padding for game area */
     box-sizing: border-box;
 }
 
@@ -966,7 +1045,6 @@ button:hover,
 /* Mobile Layout Improvements */
 @media (max-width: 768px) {
     .game-layout {
-        flex-direction: column;
         height: auto;
         min-height: 100vh;
         overflow: auto;
@@ -975,31 +1053,37 @@ button:hover,
     #chat-container {
         width: 100%;
         max-width: 100%;
-        min-width: 100%;
-        height: auto;
-        min-height: 200px;
-        max-height: 300px;
-        /* Limit max height on mobile */
-        border-right: none;
-        border-top: 2px solid #1a252f;
-        border-bottom: none;
-        order: 2;
-        /* Move chat below game */
+        height: 300px;
+        max-height: 50vh;
+        right: 0;
+        bottom: 0;
+        border-radius: 10px 10px 0 0;
     }
 
     .game-content-area {
-        order: 1;
-        /* Game area first */
         height: auto;
-        min-height: 70vh;
-        /* Reduced to make room for chat */
-        /* Ensure game area has sufficient height */
+        min-height: 90vh;
+        /* More space for game content */
     }
 
     .fullscreen-container {
         height: auto;
-        min-height: 70vh;
-        /* Reduced to make room for chat */
+        min-height: 90vh;
+    }
+
+    /* Make chat toggle button smaller on mobile */
+    #chat-toggle {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+        bottom: 15px;
+        right: 15px;
+    }
+
+    /* Increase hand section height for more card space */
+    .hand-section {
+        height: 220px;
+        /* More space for cards */
     }
 
     /* Fix for modals on mobile */
@@ -1089,14 +1173,31 @@ button:hover,
     .hand-section {
         margin-bottom: 5px;
         padding: 5px;
+        height: 230px;
+        /* More space for cards */
     }
 
     /* Make hand cards easier to select */
     .two-row-hand {
-        grid-template-columns: repeat(auto-fill, 36px);
-        grid-auto-rows: 50px;
-        gap: 4px;
+        grid-template-columns: repeat(auto-fill, 42px);
+        /* Slightly larger cells */
+        grid-auto-rows: 60px;
+        /* Taller rows */
+        gap: 5px;
         padding: 5px;
+    }
+
+    /* Slightly larger cards on mobile for better visibility */
+    .card {
+        width: 42px;
+        height: 60px;
+    }
+
+    /* Make chat toggle more visible */
+    #chat-toggle {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
     }
 
     /* Make buttons more touch-friendly */
@@ -1256,22 +1357,28 @@ button:hover,
 @media (max-height: 480px) and (orientation: landscape) {
     .game-layout {
         flex-direction: column;
-        /* Changed from row to column */
         overflow: auto;
         height: auto;
         min-height: 100vh;
     }
 
     #chat-container {
-        width: 100%;
-        /* Full width at bottom */
-        height: auto;
-        max-height: 150px;
-        /* Smaller in landscape */
-        order: 2;
-        border-bottom: none;
-        border-top: 2px solid #1a252f;
-        border-left: none;
+        width: 300px;
+        /* Smaller width in landscape */
+        height: 250px;
+        max-height: 80vh;
+        right: 0;
+        bottom: 0;
+        border-radius: 10px 0 0 0;
+    }
+
+    /* Make the toggle button smaller in landscape */
+    #chat-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+        bottom: 10px;
+        right: 10px;
     }
 
     .game-content-area {
@@ -1303,12 +1410,16 @@ button:hover,
     .hand-section {
         margin-top: 2px;
         margin-bottom: 2px;
+        height: 140px;
+        /* More space in landscape */
     }
 
     .two-row-hand {
-        grid-template-columns: repeat(auto-fill, 30px);
-        grid-auto-rows: 42px;
-        max-height: 100px;
+        grid-template-columns: repeat(auto-fill, 34px);
+        /* Slightly larger cells */
+        grid-auto-rows: 48px;
+        /* Taller rows */
+        max-height: 120px;
         overflow-y: auto;
     }
 

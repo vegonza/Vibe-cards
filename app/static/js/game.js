@@ -2823,4 +2823,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call this function when the DOM is loaded
     addClearSystemMessagesButton();
+
+    // Setup chat toggle functionality
+    function setupChatToggle() {
+        // Create chat toggle button if it doesn't exist
+        if (!document.getElementById('chat-toggle')) {
+            const chatToggle = document.createElement('button');
+            chatToggle.id = 'chat-toggle';
+            chatToggle.innerHTML = '💬';
+            chatToggle.setAttribute('aria-label', 'Toggle chat');
+
+            const notificationBadge = document.createElement('span');
+            notificationBadge.className = 'notification-badge';
+            notificationBadge.textContent = '0';
+            chatToggle.appendChild(notificationBadge);
+
+            document.body.appendChild(chatToggle);
+        }
+
+        // Add close button to chat container if it doesn't exist
+        const chatContainer = document.getElementById('chat-container');
+        const chatTitle = document.querySelector('#chat-container h3');
+        if (chatTitle && !chatTitle.querySelector('.close-chat')) {
+            const closeBtn = document.createElement('button');
+            closeBtn.className = 'close-chat';
+            closeBtn.innerHTML = '✕';
+            closeBtn.setAttribute('aria-label', 'Close chat');
+            chatTitle.appendChild(closeBtn);
+        }
+
+        // Setup event listeners
+        const chatToggle = document.getElementById('chat-toggle');
+        const closeChat = document.querySelector('.close-chat');
+
+        if (chatToggle && chatContainer) {
+            chatToggle.addEventListener('click', function () {
+                chatContainer.classList.toggle('active');
+                // Reset notification count when opening chat
+                if (chatContainer.classList.contains('active')) {
+                    const badge = chatToggle.querySelector('.notification-badge');
+                    if (badge) {
+                        badge.textContent = '0';
+                        badge.classList.remove('active');
+                    }
+                }
+            });
+        }
+
+        if (closeChat && chatContainer) {
+            closeChat.addEventListener('click', function () {
+                chatContainer.classList.remove('active');
+            });
+        }
+    }
+
+    // Override the addMessage function to show notifications
+    const originalAddMessage = window.addMessage || function () { };
+    window.addMessage = function (sender, text, type) {
+        originalAddMessage(sender, text, type);
+        // Show notification if chat is closed and message is not from system
+        if (sender !== 'System') {
+            const chatContainer = document.getElementById('chat-container');
+            const chatToggle = document.getElementById('chat-toggle');
+            if (chatContainer && !chatContainer.classList.contains('active') && chatToggle) {
+                const badge = chatToggle.querySelector('.notification-badge');
+                if (badge) {
+                    const count = parseInt(badge.textContent) || 0;
+                    badge.textContent = count + 1;
+                    badge.classList.add('active');
+                }
+            }
+        }
+    };
+
+    // Initialize chat toggle
+    setupChatToggle();
 }); 
