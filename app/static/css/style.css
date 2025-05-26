@@ -17,21 +17,22 @@ body {
 /* Chat Styles - MOVED FROM game.html */
 #chat-container {
     position: fixed;
-    bottom: 0;
-    right: 0;
-    width: 350px;
-    height: 400px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Full width */
+    height: 100vh;
+    /* Full height */
     display: none;
     /* Hidden by default */
     flex-direction: column;
     background-color: #2c3e50;
     padding: 10px;
-    border-left: 2px solid #1a252f;
-    border-top: 2px solid #1a252f;
     box-sizing: border-box;
     z-index: 1000;
-    box-shadow: -5px -5px 15px rgba(0, 0, 0, 0.3);
-    border-radius: 10px 0 0 0;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    /* Smooth transition */
 }
 
 #chat-container.active {
@@ -91,35 +92,44 @@ body {
 #chat-container h3 {
     color: #f1c40f;
     text-align: center;
-    margin-bottom: 10px;
-    font-size: 1.2em;
+    margin: 10px 0 20px 0;
+    font-size: 1.5em;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    padding: 0 10px;
 }
 
 .close-chat {
     background: none;
     border: none;
     color: #e74c3c;
-    font-size: 1.2em;
+    font-size: 1.5em;
     cursor: pointer;
-    padding: 5px;
+    padding: 8px;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .close-chat:hover {
     color: #c0392b;
     transform: scale(1.1);
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 #chat-log {
     flex-grow: 1;
     overflow-y: auto;
-    margin-bottom: 10px;
-    padding: 8px;
+    margin: 0 10px 20px 10px;
+    padding: 15px;
     background-color: #34495e;
-    border-radius: 5px;
-    font-size: 0.9em;
+    border-radius: 8px;
+    font-size: 1em;
+    max-height: calc(100vh - 160px);
 }
 
 .chat-message {
@@ -223,31 +233,36 @@ body {
 
 #chat-input-area {
     display: flex;
-    gap: 8px;
+    gap: 10px;
+    padding: 0 10px 15px 10px;
 }
 
 #chat-message-input {
     flex-grow: 1;
-    padding: 10px;
-    border-radius: 5px;
+    padding: 15px;
+    border-radius: 8px;
     border: 1px solid #4a6178;
     background-color: #4a6178;
     color: #ecf0f1;
-    font-size: 0.9em;
+    font-size: 1em;
+    height: 50px;
 }
 
 #send-message-button {
-    padding: 10px 15px;
+    padding: 10px 20px;
     background-color: #3498db;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.9em;
+    font-size: 1em;
+    font-weight: bold;
+    min-width: 100px;
 }
 
 #send-message-button:hover {
     background-color: #2980b9;
+    transform: translateY(-2px);
 }
 
 /* Game Layout Styles - MOVED FROM game.html */
@@ -1052,12 +1067,8 @@ button:hover,
 
     #chat-container {
         width: 100%;
-        max-width: 100%;
-        height: 300px;
-        max-height: 50vh;
-        right: 0;
-        bottom: 0;
-        border-radius: 10px 10px 0 0;
+        height: 100vh;
+        max-height: 100vh;
     }
 
     .game-content-area {
@@ -1268,25 +1279,29 @@ button:hover,
 
     /* Chat improvements for mobile */
     #chat-container {
-        max-height: 250px;
+        height: 100vh;
+        max-height: 100vh;
+        padding: 10px;
     }
 
     #chat-log {
-        max-height: 150px;
+        max-height: calc(100vh - 140px);
         overflow-y: auto;
     }
 
     #chat-input-area {
-        margin-top: 5px;
+        margin-top: 10px;
     }
 
     #chat-message-input {
-        height: 40px;
+        height: 50px;
+        font-size: 16px;
     }
 
     #send-message-button {
-        min-width: 60px;
-        min-height: 40px;
+        min-width: 80px;
+        min-height: 50px;
+        font-size: 16px;
     }
 
     /* Improve visibility of player status */
@@ -1363,13 +1378,10 @@ button:hover,
     }
 
     #chat-container {
-        width: 300px;
-        /* Smaller width in landscape */
-        height: 250px;
-        max-height: 80vh;
-        right: 0;
-        bottom: 0;
-        border-radius: 10px 0 0 0;
+        width: 100%;
+        height: 100vh;
+        max-height: 100vh;
+        padding: 10px;
     }
 
     /* Make the toggle button smaller in landscape */
@@ -1464,13 +1476,21 @@ button:hover,
         right: 5px;
     }
 
-    /* Compact chat for landscape */
+    /* Fullscreen chat for landscape */
     #chat-log {
-        max-height: 80px;
+        max-height: calc(100vh - 130px);
     }
 
     #chat-input-area {
-        margin-top: 2px;
+        margin-top: 10px;
+    }
+
+    #chat-message-input {
+        height: 45px;
+    }
+
+    #send-message-button {
+        min-height: 45px;
     }
 }
 

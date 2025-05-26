@@ -2875,6 +2875,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 chatContainer.classList.remove('active');
             });
         }
+
+        // Allow closing chat with Escape key
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && chatContainer && chatContainer.classList.contains('active')) {
+                chatContainer.classList.remove('active');
+                e.preventDefault();
+            }
+        });
     }
 
     // Override the addMessage function to show notifications
