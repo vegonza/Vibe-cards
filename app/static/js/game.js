@@ -235,11 +235,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const isSystem = msg.sender === 'System';
         if (isSystem) {
             messageElement.classList.add('system');
+            // Hide system messages by default
+            if (systemMessagesHidden) {
+                messageElement.style.display = 'none';
+            }
             if (msg.type) {
                 messageElement.classList.add(msg.type);
             }
             if (msg.type === 'divider') {
                 messageElement.textContent = msg.text;
+                // Hide dividers too
+                if (systemMessagesHidden) {
+                    messageElement.style.display = 'none';
+                }
                 return messageElement; // Return early for divider
             }
 
@@ -2760,13 +2768,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Add a global variable to track system messages visibility state
-    // Default to hidden (true) unless explicitly set to visible in localStorage
-    let systemMessagesHidden = localStorage.getItem('systemMessagesHidden') !== 'false';
+    // Always default to hidden (true) on page load
+    let systemMessagesHidden = true;
 
-    // Initialize localStorage if it doesn't have a value yet
-    if (localStorage.getItem('systemMessagesHidden') === null) {
-        localStorage.setItem('systemMessagesHidden', 'true');
-    }
+    // Set localStorage to hidden by default
+    localStorage.setItem('systemMessagesHidden', 'true');
 
     // Add a clear system messages button
     function addClearSystemMessagesButton() {
@@ -2778,14 +2784,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Create the button
         const clearButton = document.createElement('button');
         clearButton.id = 'clear-system-messages';
-        clearButton.className = 'clear-system-btn';
-        clearButton.innerHTML = systemMessagesHidden ? '🔊 Show System Messages' : '🔇 Hide System Messages';
-        clearButton.title = systemMessagesHidden ? 'Show all system messages' : 'Hide all system messages';
+        clearButton.className = 'clear-system-btn active'; // Active by default now
+        clearButton.innerHTML = '🔊 Show System Messages'; // Default text is now "Show"
+        clearButton.title = 'Show all system messages';
 
-        // Add active class if messages are hidden
-        if (systemMessagesHidden) {
-            clearButton.classList.add('active');
-        }
+        // No need to add active class conditionally since it's in the className already
 
         // Add click event
         clearButton.addEventListener('click', function () {
