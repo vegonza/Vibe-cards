@@ -10,7 +10,8 @@ body {
     color: #ecf0f1;
     line-height: 1.6;
     height: 100vh;
-    overflow: hidden;
+    overflow: auto;
+    /* Changed from hidden to auto to allow scrolling */
 }
 
 /* Chat Styles - MOVED FROM game.html */
@@ -177,6 +178,8 @@ body {
     display: flex;
     height: 100vh;
     width: 100vw;
+    overflow: auto;
+    /* Allow scrolling */
 }
 
 .game-content-area {
@@ -975,8 +978,11 @@ button:hover,
         min-width: 100%;
         height: auto;
         min-height: 200px;
+        max-height: 300px;
+        /* Limit max height on mobile */
         border-right: none;
-        border-bottom: 2px solid #1a252f;
+        border-top: 2px solid #1a252f;
+        border-bottom: none;
         order: 2;
         /* Move chat below game */
     }
@@ -985,13 +991,15 @@ button:hover,
         order: 1;
         /* Game area first */
         height: auto;
-        min-height: 80vh;
+        min-height: 70vh;
+        /* Reduced to make room for chat */
         /* Ensure game area has sufficient height */
     }
 
     .fullscreen-container {
         height: auto;
-        min-height: 80vh;
+        min-height: 70vh;
+        /* Reduced to make room for chat */
     }
 
     /* Fix for modals on mobile */
@@ -1157,9 +1165,14 @@ button:hover,
         padding: 2px 4px;
     }
 
-    /* Adjust chat to be usable on mobile */
+    /* Chat improvements for mobile */
+    #chat-container {
+        max-height: 250px;
+    }
+
     #chat-log {
-        max-height: 200px;
+        max-height: 150px;
+        overflow-y: auto;
     }
 
     #chat-input-area {
@@ -1239,24 +1252,33 @@ button:hover,
     }
 }
 
-/* Landscape mode adjustments */
+/* Landscape mode adjustments - Keep chat at bottom in landscape mode as well */
 @media (max-height: 480px) and (orientation: landscape) {
     .game-layout {
-        flex-direction: row;
-        /* Side by side in landscape */
+        flex-direction: column;
+        /* Changed from row to column */
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
     }
 
     #chat-container {
-        width: 25%;
-        height: 100vh;
+        width: 100%;
+        /* Full width at bottom */
+        height: auto;
+        max-height: 150px;
+        /* Smaller in landscape */
         order: 2;
         border-bottom: none;
-        border-left: 2px solid #1a252f;
+        border-top: 2px solid #1a252f;
+        border-left: none;
     }
 
     .game-content-area {
-        width: 75%;
-        height: 100vh;
+        width: 100%;
+        height: auto;
+        min-height: 480px;
+        order: 1;
     }
 
     /* Make table smaller for landscape */
@@ -1329,6 +1351,15 @@ button:hover,
         bottom: 5px;
         left: 5px;
         right: 5px;
+    }
+
+    /* Compact chat for landscape */
+    #chat-log {
+        max-height: 80px;
+    }
+
+    #chat-input-area {
+        margin-top: 2px;
     }
 }
 
