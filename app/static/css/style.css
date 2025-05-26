@@ -960,6 +960,378 @@ button:hover,
     }
 }
 
+/* Mobile Layout Improvements */
+@media (max-width: 768px) {
+    .game-layout {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+
+    #chat-container {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+        height: auto;
+        min-height: 200px;
+        border-right: none;
+        border-bottom: 2px solid #1a252f;
+        order: 2;
+        /* Move chat below game */
+    }
+
+    .game-content-area {
+        order: 1;
+        /* Game area first */
+        height: auto;
+        min-height: 80vh;
+        /* Ensure game area has sufficient height */
+    }
+
+    .fullscreen-container {
+        height: auto;
+        min-height: 80vh;
+    }
+
+    /* Fix for modals on mobile */
+    .rules-modal,
+    .settings-modal,
+    .joker-modal,
+    .role-assignment-modal {
+        align-items: center;
+        justify-content: center;
+        padding: 10px;
+    }
+
+    .rules-content,
+    .settings-content,
+    .joker-content,
+    .role-assignment-content {
+        max-height: 90vh;
+        overflow-y: auto;
+        width: 95%;
+    }
+
+    /* Make close buttons larger for touch */
+    .close-rules,
+    .close-settings,
+    .cancel-joker,
+    .cancel-roles-btn {
+        padding: 10px 15px;
+        font-size: 16px;
+        min-height: 44px;
+        min-width: 80px;
+    }
+}
+
+/* Phone-specific improvements (general) */
+@media (max-width: 480px) {
+    body {
+        overflow: auto;
+        /* Allow scrolling on small screens */
+    }
+
+    /* Make the table smaller for small screens */
+    .table-section {
+        margin-top: 20px;
+        margin-bottom: 10px;
+        min-height: 260px;
+    }
+
+    .table-circle {
+        width: 260px;
+        height: 260px;
+        border-width: 8px;
+    }
+
+    .table-cards {
+        width: 120px;
+        height: 120px;
+    }
+
+    /* Smaller cards for mobile */
+    .card {
+        width: 40px;
+        height: 56px;
+        border-radius: 4px;
+        margin: 2px;
+        /* Add a bit of space between cards */
+    }
+
+    /* Adjust player positions for better visibility */
+    .player-positions {
+        top: 15px;
+        bottom: 15px;
+        left: 15px;
+        right: 15px;
+    }
+
+    /* Make player avatars more visible */
+    .player-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+        /* Increase touch target */
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    /* Better spacing for hand section */
+    .hand-section {
+        margin-bottom: 5px;
+        padding: 5px;
+    }
+
+    /* Make hand cards easier to select */
+    .two-row-hand {
+        grid-template-columns: repeat(auto-fill, 36px);
+        grid-auto-rows: 50px;
+        gap: 4px;
+        padding: 5px;
+    }
+
+    /* Make buttons more touch-friendly */
+    button,
+    #skip-turn,
+    #play-selected {
+        padding: 12px 15px;
+        /* Larger padding for touch */
+        font-size: 16px;
+        min-height: 44px;
+        /* Minimum height for touch targets */
+        border-radius: 8px;
+        /* Rounded corners */
+    }
+
+    /* Give more space to buttons */
+    .side-controls {
+        gap: 10px;
+        margin: 10px 0;
+        flex-direction: column;
+        /* Stack buttons for better touch targets */
+    }
+
+    /* Make the joker modal more mobile-friendly */
+    .joker-modal {
+        padding: 10px;
+    }
+
+    .joker-content {
+        width: 95%;
+        max-width: 95%;
+        padding: 15px;
+    }
+
+    .joker-options {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    /* Make host controls more mobile-friendly */
+    .host-controls {
+        width: 100%;
+        max-width: 100%;
+        padding: 10px;
+    }
+
+    .host-controls-buttons {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .host-btn {
+        padding: 12px;
+        min-height: 44px;
+    }
+
+    /* Adjust status badges for better visibility */
+    .status-badge {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+
+    /* Make player name tags more visible */
+    .player-name-tag {
+        font-size: 0.75rem;
+        padding: 2px 4px;
+    }
+
+    /* Adjust chat to be usable on mobile */
+    #chat-log {
+        max-height: 200px;
+    }
+
+    #chat-input-area {
+        margin-top: 5px;
+    }
+
+    #chat-message-input {
+        height: 40px;
+    }
+
+    #send-message-button {
+        min-width: 60px;
+        min-height: 40px;
+    }
+
+    /* Improve visibility of player status */
+    .player-avatar.current-turn {
+        box-shadow: 0 0 8px 2px rgba(243, 156, 18, 0.8);
+    }
+
+    .player-position.skipped .player-avatar {
+        opacity: 0.6;
+    }
+}
+
+/* Portrait mode specific adjustments */
+@media (max-width: 480px) and (orientation: portrait) {
+
+    /* Further reduce table size */
+    .table-section {
+        min-height: 240px;
+    }
+
+    .table-circle {
+        width: 240px;
+        height: 240px;
+    }
+
+    /* Adjust player positions to be more visible in portrait */
+    .player-positions {
+        top: 10px;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+    }
+
+    /* Make cards in hand even more compact */
+    .two-row-hand {
+        grid-template-columns: repeat(auto-fill, 32px);
+        grid-auto-rows: 45px;
+    }
+
+    /* Stack controls for better usability */
+    .game-footer {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .hand-controls-container {
+        width: 100%;
+    }
+
+    /* Make card selection easier with touch */
+    .card.selected {
+        transform: translateY(-5px);
+    }
+
+    /* Compact game layout */
+    .fullscreen-container {
+        padding: 5px;
+    }
+
+    /* Ensure chat is usable */
+    #chat-container {
+        min-height: 180px;
+    }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 480px) and (orientation: landscape) {
+    .game-layout {
+        flex-direction: row;
+        /* Side by side in landscape */
+    }
+
+    #chat-container {
+        width: 25%;
+        height: 100vh;
+        order: 2;
+        border-bottom: none;
+        border-left: 2px solid #1a252f;
+    }
+
+    .game-content-area {
+        width: 75%;
+        height: 100vh;
+    }
+
+    /* Make table smaller for landscape */
+    .table-section {
+        min-height: 180px;
+        margin-top: 5px;
+        margin-bottom: 5px;
+    }
+
+    .table-circle {
+        width: 180px;
+        height: 180px;
+        border-width: 6px;
+    }
+
+    .table-cards {
+        width: 100px;
+        height: 100px;
+    }
+
+    /* Adjust player hand for landscape */
+    .hand-section {
+        margin-top: 2px;
+        margin-bottom: 2px;
+    }
+
+    .two-row-hand {
+        grid-template-columns: repeat(auto-fill, 30px);
+        grid-auto-rows: 42px;
+        max-height: 100px;
+        overflow-y: auto;
+    }
+
+    /* More compact cards */
+    .card {
+        width: 30px;
+        height: 42px;
+    }
+
+    /* Move controls to the side in landscape */
+    .game-footer {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    /* Compact controls for landscape */
+    .side-controls {
+        flex-direction: row;
+        gap: 5px;
+    }
+
+    button,
+    #skip-turn,
+    #play-selected {
+        padding: 8px 10px;
+        font-size: 14px;
+        min-height: 36px;
+    }
+
+    /* More compact avatars */
+    .player-avatar {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    /* Adjust positions for landscape */
+    .player-positions {
+        top: 5px;
+        bottom: 5px;
+        left: 5px;
+        right: 5px;
+    }
+}
+
 @media (max-height: 800px) {
     .table-section {
         margin-top: 30px;
